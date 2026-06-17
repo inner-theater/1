@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateFutureLetter, getApiKey, setApiKey } from '../utils/ai';
+import { generateFutureLetter } from '../utils/ai';
 import storage from '../utils/storage';
 import InsightPanel from '../components/InsightPanel';
 
@@ -12,14 +12,12 @@ export default function Game2_ParallelLetters() {
   const [loading, setLoading] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [highlights, setHighlights] = useState({});
-  const [showApiConfig, setShowApiConfig] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(getApiKey() || '');
 
   const generateLetters = async () => {
     if (!optionA.trim() || !optionB.trim()) return;
     setLoading(true);
     try {
-      const results = await generateFutureLetter(optionA, optionB, apiKeyInput);
+      const results = await generateFutureLetter(optionA, optionB);
       setLetters(results);
       setStep('letters');
       storage.addDiaryEntry({
@@ -42,11 +40,6 @@ export default function Game2_ParallelLetters() {
     }));
   };
 
-  const saveApiKey = () => {
-    setApiKey(apiKeyInput);
-    setShowApiConfig(false);
-  };
-
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '40px 24px' }}>
       <motion.div
@@ -61,64 +54,6 @@ export default function Game2_ParallelLetters() {
           <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>
             AI 为你写下不同选择后的未来信件，感受时间带来的回响
           </p>
-
-          <button
-            onClick={() => setShowApiConfig(!showApiConfig)}
-            style={{
-              marginTop: '12px',
-              padding: '6px 16px',
-              borderRadius: '20px',
-              background: 'rgba(201,168,76,0.1)',
-              color: '#c9a84c',
-              fontSize: '12px',
-              border: '1px solid rgba(201,168,76,0.3)',
-            }}
-          >
-            ⚙ {apiKeyInput ? '已配置 DeepSeek API' : '配置 API Key（可选）'}
-          </button>
-
-          {showApiConfig && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              style={{
-                marginTop: '12px',
-                display: 'flex',
-                gap: '8px',
-                justifyContent: 'center',
-              }}
-            >
-              <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="输入 DeepSeek API Key（可选）"
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(201,168,76,0.3)',
-                  background: 'rgba(0,0,0,0.3)',
-                  color: '#fff',
-                  fontSize: '13px',
-                  width: '300px',
-                  outline: 'none',
-                }}
-              />
-              <button
-                onClick={saveApiKey}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  background: 'rgba(201,168,76,0.2)',
-                  color: '#c9a84c',
-                  border: '1px solid rgba(201,168,76,0.3)',
-                  fontSize: '13px',
-                }}
-              >
-                保存
-              </button>
-            </motion.div>
-          )}
         </div>
 
         <AnimatePresence mode="wait">

@@ -1,196 +1,52 @@
-// AI API 工具 - DeepSeek 集成
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+// AI 工具 — 平行时空来信 + 解读
+// 统一走 Supabase Edge Function → 百炼多模型自动 fallback
 
-// 默认使用模拟数据（用户可后续配置 API Key）
-let apiKey = storage.get('api_key') || '';
+const SUPABASE_FUNCTION_URL = 'https://uemvpdbuhzfomfstqias.supabase.co/functions/v1/generate-insight';
 
-export function setApiKey(key) {
-  apiKey = key;
-  storage.set('api_key', key);
-}
-
-export function getApiKey() {
-  return apiKey;
-}
-
-// 模拟 AI 响应（当没有 API Key 时使用）
-function generateMockLetter(choice, year, optionA, optionB) {
-  const templates = {
-    1: {
-      title: '一年后的来信',
-      scenarios: {
-        A: [
-          `亲爱的你：
-
-写下这封信的时候，距离你做出那个决定已经过去整整一年了。还记得当初站在岔路口的心情吗？我想告诉你，选择${optionA || '这条路'}是对的——不是因为它没有困难，而是因为你在这里找到了意想不到的成长。
-
-三个月后你就发现，原来自己远比想象中坚韧。你学会了清晨五点起床，学会了在压力下保持微笑，还认识了一群志同道合的朋友。当然也有过深夜痛哭的时刻，但每一次擦干眼泪后，你都变得更强大了一点。
-
-现在的你，正坐在咖啡馆里写日记，窗外是初秋的阳光。手机里存满了旅行照片和新朋友的合影。你知道吗？那个曾经让你辗转反侧的决定，现在回头看，不过是为更好的自己打开了一扇门。
-
-所以亲爱的，别怕。不管选择哪条路，你都会走得很精彩。因为决定未来的从来不是路本身，而是走在路上的你。
-
-—— 一年后的你`,
-        ],
-        B: [
-          `嗨，一年前的我：
-
-时间好快对不对？我想你一定很想知道，选了${optionB || '另一条路'}之后，生活变成了什么样子。
-
-说实话，和最初的想象不太一样。没有惊天动地的变化，但有一些很微妙的好事情发生了。比如你终于开始学那个搁置了三年的乐器，比如你每周都去爬山发现了城市里隐藏的风景，比如你和家人之间的关系变得更加亲密了。
-
-工作上的挑战比预期多，但你处理得意外地好。你发现自己其实很喜欢这种被需要的感觉。而最让我开心的是，你不再那么焦虑了——你开始相信，人生不是一场竞赛，而是一段需要慢慢品味的旅程。
-
-现在的你正在计划一次独自旅行，去一个从没去过的地方。你变得勇敢了，也温柔了。
-
-对了，记得多给妈妈打电话。她很爱你。
-
-—— 一年后的你`,
-        ],
-      },
-    },
-    3: {
-      title: '三年后的来信',
-      scenarios: {
-        A: [
-          `三年后的你：
-
-你好呀。三年，足够让很多事发生改变。
-
-打开这封信的时候，你可能已经快忘了当初那个纠结到失眠的自己是什么样子了。其实那个决定带来的连锁反应，比你想象的要大得多。你遇到了一个人，他/她改变了你的人生轨迹——不是因为爱情，而是因为他/她让你看到了世界的另一种可能性。
-
-你换了城市，或者说，你终于去了那个一直想去的地方。凌晨的机场、陌生的街道、第一次独自面对一切的慌张——这些你都经历了，也都挺过来了。现在的你有一份热爱的工作，一个温馨的小窝，还有一群可以随时约出来喝酒的朋友。
-
-当然也有遗憾。有些朋友慢慢走散了，有些梦想还在路上。但你已经学会和遗憾和平共处。你明白了，人生最珍贵的不是没有遗憾，而是每次选择都忠于内心。
-
-继续勇敢地走下去吧，你比你想象的更值得被爱。
-
-—— 三年后的你`,
-        ],
-        B: [
-          `三年后的自己：
-
-写下这些字的时候，我正在阳台上喝咖啡。三年前的这个时候，你正在为那个选择焦头烂额。现在想起来，那段时间虽然痛苦，但却是你人生最重要的转折点之一。
-
-选择${optionB || '这条路'}之后，生活没有变成童话，但变成了一个更有趣的故事。你创业了，失败了，又站起来。你在失败中认识了自己最真实的样子——不完美，但真实。你不再是那个活在别人期待里的自己了。
-
-最让我骄傲的是，你终于学会了说"不"。不再勉强自己去参加不喜欢的聚会，不再为了合群而改变自己。朋友少了，但剩下的都是真心的。这种清爽的感觉，希望你早点体会到。
-
-你养了一只猫，它叫"抉择"——对，就是每次选择恐惧症发作时嘲笑你的那个名字。
-
-无论你现在在为什么烦恼，相信我，都会过去的。三年后的你很好，所以你也会很好。
-
-—— 三年后的你`,
-        ],
-      },
-    },
-    10: {
-      title: '十年后的来信',
-      scenarios: {
-        A: [
-          `十年后的你：
-
-十年了。写下这两个字的时候，我自己都有点恍惚。
-
-你还记得十年前那个站在人生岔路口的年轻人吗？那个为了一次选择失眠了整整一周的人。我想对他说：谢谢你当时鼓起勇气做了那个决定。不是因为它有多正确，而是因为它让你学会了对自己的选择负责。
-
-这十年你做了很多事。你去了二十几个国家，写了一本没人看的书，养了两个孩子（也可能是两只猫），学会了四门外语（有一门已经忘得差不多了）。你经历过失去，也经历过重逢。你终于理解了父母当年的很多决定，也原谅了曾经伤害过你的人。
-
-最重要的是，你不再害怕做选择了。因为你明白了：人生没有白走的路，每一步都算数。那些看似错误的决定，最后都教会了你一些重要的东西。
-
-现在的你，正坐在自家阳台上看着日落。晚风很温柔，和十年前那个失眠的夜晚一样温柔。不同的是，你不再焦虑了。你知道，无论发生什么，你都有能力面对。
-
-谢谢你，十年前的我。谢谢你没有放弃。
-
-—— 十年后的你`,
-        ],
-        B: [
-          `写给十年前的你：
-
-你好。我是十年后的你。我知道你现在很纠结，所以我想把后来发生的故事告诉你。
-
-选择${optionB || '另一条路'}之后，生活带你去了很多意想不到的地方。你成了一名老师（是的，那个最讨厌站在讲台上的人），在山区支教了两年。那段经历彻底改变了你——你发现自己原来可以如此耐心，如此有力量。
-
-你遇到了一个很棒的人，组建了家庭。你的孩子在客厅里跑来跑去，笑声是这个世界上最动听的声音。有时候你会想，如果当初做了另一个选择，现在的生活会是什么样子？然后你笑了，因为你意识到：这不是后悔，而是好奇。而好奇，恰恰证明了你对现在生活的满意。
-
-你依然有很多烦恼，依然会犯错，依然会在深夜辗转反侧。但你已经不再害怕了。十年教会你的最重要的事就是：人生不会因为一次选择就被定义。真正定义你的，是你如何走好选择之后的路。
-
-所以，勇敢一点。十年后的你会感谢现在纠结但最终迈出那一步的你。
-
-P.S. 比特币涨了，但你没买。哈哈哈。
-
-—— 十年后的你`,
-        ],
-      },
-    },
-  };
-
-  const t = templates[year];
-  if (!t) return null;
-  const choiceKey = Math.random() > 0.5 ? 'A' : 'B';
-  return {
-    title: t.title,
-    content: t.scenarios[choiceKey][0],
-    year,
-  };
-}
-
-export async function generateFutureLetter(optionA, optionB, apiKeyInput) {
-  const key = apiKeyInput || apiKey;
+export async function generateFutureLetter(optionA, optionB) {
   const years = [1, 3, 10];
-
-  if (!key) {
-    // 没有 API Key 时使用模拟数据
-    return years.map((y) => generateMockLetter(Math.random() > 0.5 ? 'A' : 'B', y, optionA, optionB));
-  }
 
   try {
     const results = await Promise.all(
       years.map(async (year) => {
-        const prompt = `你是一个来自未来的写信人。请以"${year}年后的你"的身份，给现在正在为两个选择纠结的年轻人写一封信。
-
-选项A: ${optionA}
-选项B: ${optionB}
-
-请随机选择一个选项（A或B），想象选择之后${year}年的人生轨迹，写一封温暖、真诚、有画面感的信。信要像真的来自未来一样自然——包含具体的生活细节、情感变化、成长感悟。风格像《解忧杂货店》那样温暖治愈。
-
-字数：${year === 1 ? '200' : year === 3 ? '300' : '400'}字左右。`;
-
-        const response = await fetch(DEEPSEEK_API_URL, {
+        const response = await fetch(SUPABASE_FUNCTION_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              { role: 'system', content: '你是一个温暖治愈的写信人，擅长用细腻的文字写出感人至深的信件。' },
-              { role: 'user', content: prompt },
-            ],
-            temperature: 0.9,
-            max_tokens: 1000,
+            gameType: 'generate-letter',
+            context: { optionA, optionB, year },
           }),
         });
 
         const data = await response.json();
-        if (!response.ok || !data.choices) {
-          throw new Error(data.error?.message || 'API 请求失败');
-        }
+        if (!response.ok) throw new Error(data.error || '生成失败');
 
         return {
           title: `${year}年后的来信`,
-          content: data.choices[0].message.content,
+          content: data.content,
           year,
+          model: data.model,
         };
       })
     );
 
     return results;
-  } catch (error) {
-    console.warn('AI API 调用失败，使用模拟数据:', error.message);
-    return years.map((y) => generateMockLetter(Math.random() > 0.5 ? 'A' : 'B', y, optionA, optionB));
+  } catch (e) {
+    console.warn('AI 来信生成失败，使用模拟数据:', e.message);
+    return years.map((y) => ({
+      title: `${y}年后的来信`,
+      content: generateMockLetter(y, optionA, optionB),
+      year: y,
+    }));
   }
 }
 
-import { storage } from './storage';
+// 模拟数据（所有模型都不可用时的兜底）
+function generateMockLetter(year, optionA, optionB) {
+  const letters = {
+    1: `亲爱的你：\n\n一年了。记得当初站在岔路口的你吗？选择「${optionA || optionB || '这条路'}」之后，你发现成长往往藏在最初的不安里。你学会了在压力下微笑，也遇到了让你眼睛发亮的人。现在的你正喝着咖啡晒太阳，那段辗转反侧的时光，不过是成长的前奏。\n\n—— 一年后的你`,
+    3: `三年后的你：\n\n时间是个好东西。你换了城市，做了些勇敢的决定，也有了可以深夜打电话的朋友。最重要的是，你不再那么害怕选错了——因为你知道每条路都有它的风景。当初让你纠结的那个选择，现在回头看不过是人生的一个逗号。\n\n—— 三年后的你`,
+    10: `十年后的你：\n\n你好，我是十年后的你。我想告诉你：谢谢你当初认真做了选择。不是因为它多正确，而是因为你在选择之后一直在认真生活。你去了想去的地方，爱了想爱的人，也放下了该放下的。人生从来没有白走的路。\n\n—— 十年后的你`,
+  };
+  return letters[year] || letters[1];
+}
