@@ -1,10 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 import ParticleBackground from './ParticleBackground';
 
 export default function Layout({ children }) {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const isHome = location.pathname === '/';
+  const hideHeader = location.pathname === '/login' || location.pathname === '/register';
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-dark)' }}>
@@ -50,6 +53,7 @@ export default function Layout({ children }) {
         </Link>
 
         <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+          {!hideHeader && (<>
           <Link
             to="/"
             style={{
@@ -83,6 +87,34 @@ export default function Layout({ children }) {
           >
             人生博物馆
           </Link>
+
+          {user ? (
+            <button onClick={signOut}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.5)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                cursor: 'pointer',
+                letterSpacing: '1px',
+              }}
+            >
+              👤 {user.email?.split('@')[0]} · 退出
+            </button>
+          ) : (
+            <Link to="/login"
+              style={{
+                color: 'rgba(201,168,76,0.8)',
+                fontSize: '13px',
+                letterSpacing: '2px',
+              }}
+            >
+              登录
+            </Link>
+          )}
+          </>)}
         </nav>
       </motion.header>
 

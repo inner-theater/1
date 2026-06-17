@@ -116,6 +116,10 @@ ${context.reaction ? `他看到反馈后的反应：${context.reaction}` : ''}
 3. 告诉他：如何在外界声音中保持对自己内心的聆听。`;
         break;
 
+      case 'diary-analysis':
+        userPrompt = context.messages?.[0]?.content || '请分析用户的决策日记';
+        break;
+
       default:
         return new Response(
           JSON.stringify({ error: `未知游戏类型: ${gameType}` }),
@@ -130,13 +134,13 @@ ${context.reaction ? `他看到反馈后的反应：${context.reaction}` : ''}
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'qwen-turbo',
+        model: (context?.model) || 'qwen-turbo',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.8,
-        max_tokens: 600,
+        max_tokens: context?.maxTokens || 600,
       }),
     });
 
