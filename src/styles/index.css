@@ -1,0 +1,131 @@
+/* ===== 内心剧场 - 全局样式 ===== */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+:root {
+  /* 复古剧院主题色 */
+  --bg-dark: #1a0a2e;
+  --bg-medium: #231438;
+  --bg-light: #2d1f47;
+  --velvet: #3d1259;
+  --gold: #c9a84c;
+  --gold-light: #e8d48b;
+  --gold-dark: #8b6914;
+  --spotlight: #ffd700;
+  --wood: #5c3a1e;
+  --wood-light: #8b5e3c;
+  --cream: #f5e6d3;
+  --cream-dark: #d4c4a8;
+  --text-primary: #f5e6d3;
+  --text-secondary: #c9a84c;
+  --text-muted: #8b7fa8;
+  --danger: #c0392b;
+  --success: #27ae60;
+  --highlight: #ffd700;
+
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Noto Sans SC', sans-serif;
+
+  --shadow-gold: 0 0 20px rgba(201, 168, 76, 0.3);
+  --shadow-deep: 0 10px 40px rgba(0,0,0,0.5);
+  --radius: 12px;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--gold);
+  text-decoration: none;
+  transition: var(--transition);
+}
+a:hover { color: var(--gold-light); }
+
+button {
+  cursor: pointer;
+  font-family: var(--font-body);
+  border: none;
+  outline: none;
+  transition: var(--transition);
+}
+
+/* ===== 卷轴入场动画 ===== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes curtainOpen {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes spotlightPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes floatUp {
+  0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes particleFloat {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes cardFlip {
+  0% { transform: perspective(1000px) rotateY(0deg); }
+  100% { transform: perspective(1000px) rotateY(180deg); }
+}
+
+@keyframes cardBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--velvet); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+
+/* 选中文字 */
+::selection {
+  background: var(--gold);
+  color: var(--bg-dark);
+}
