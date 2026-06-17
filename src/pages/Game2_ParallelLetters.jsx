@@ -372,7 +372,11 @@ export default function Game2_ParallelLetters() {
                 <InsightPanel
                   gameType="parallel-letters"
                   visible={true}
-                  data={{ optionA, optionB }}
+                  context={{
+                    optionA,
+                    optionB,
+                    highlights: Object.keys(highlights || {}).join('、'),
+                  }}
                 />
               </div>
             </motion.div>

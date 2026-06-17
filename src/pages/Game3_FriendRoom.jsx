@@ -367,7 +367,10 @@ export default function Game3_FriendRoom() {
                       <InsightPanel
                         gameType="friend-room"
                         visible={true}
-                        data={{ question: question }}
+                        context={{
+                          question,
+                          options: answers?.length ? answers.join('、') : '',
+                        }}
                       />
                     </div>
                   </motion.div>

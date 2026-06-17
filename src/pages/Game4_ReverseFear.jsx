@@ -369,10 +369,12 @@ export default function Game4_ReverseFear() {
                     <InsightPanel
                       gameType="reverse-fear"
                       visible={true}
-                      data={{
+                      context={{
                         question,
-                        kept: fears.map((f) => f.label || f),
-                        removed: removedFears.map((f) => f.label || f),
+                        allFears: [...fears, ...removedFears].map((f) => f.label || f).join('、'),
+                        kept: fears.map((f) => f.label || f).join('、'),
+                        removed: removedFears.map((f) => f.label || f).join('、'),
+                        interactions: `用户写入了${fears.length + removedFears.length}个恐惧项，删除了${removedFears.length}个`,
                       }}
                     />
                   </motion.div>

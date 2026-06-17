@@ -812,12 +812,11 @@ export default function Game1_InstinctHand() {
               <InsightPanel
                 gameType="instinct-hand"
                 visible={true}
-                data={{
+                context={{
                   question,
-                  caughtLabel: caught?.label || '',
-                  ballCount: balls.length,
-                  time: catchTime,
+                  options: options.filter((o) => o.trim()).join('、'),
                   result: caught?.label || '',
+                  time: catchTime.toFixed(1) + '秒',
                   blindMode,
                 }}
               />

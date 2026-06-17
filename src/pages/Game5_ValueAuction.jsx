@@ -361,9 +361,16 @@ export default function Game5_ValueAuction() {
                     <InsightPanel
                       gameType="value-auction"
                       visible={true}
-                      data={{
+                      context={{
                         question,
-                        bids,
+                        options: options.filter((o) => o.trim()).join('、'),
+                        bidsDetail: Object.entries(bids)
+                          .map(([vid, amount]) => {
+                            const v = VALUES.find((x) => x.id === parseInt(vid));
+                            return v ? `${v.icon}${v.name}(${amount}金币)` : '';
+                          })
+                          .filter(Boolean)
+                          .join('、'),
                         result: matchedOption >= 0 ? options[matchedOption] : '',
                       }}
                     />

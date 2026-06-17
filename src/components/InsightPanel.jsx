@@ -2,38 +2,30 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateInsight } from '../utils/ai-insight';
 
-export default function InsightPanel({ gameType, data, visible }) {
+export default function InsightPanel({ gameType, context, visible }) {
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [fromAI, setFromAI] = useState(false);
 
   useEffect(() => {
-    if (!visible || !gameType || !data) return;
+    if (!visible || !gameType || !context) return;
 
     let cancelled = false;
     setLoading(true);
-    setError(null);
     setInsight(null);
 
-    generateInsight(gameType, data)
+    generateInsight(gameType, context)
       .then((text) => {
-        if (!cancelled) {
-          setInsight(text || '正在为你整理分析...');
-          // If the reply doesn't start with "##", it's from AI (not template)
-          setFromAI(text && !text.startsWith('## '));
+        if (!cancelled && text) {
+          setInsight(text);
           setLoading(false);
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setError('暂时无法生成分析');
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [gameType, visible, data]);
+  }, [gameType, visible, JSON.stringify(context)]);
 
   if (!visible) return null;
 
@@ -61,9 +53,9 @@ export default function InsightPanel({ gameType, data, visible }) {
             letterSpacing: '2px',
             fontFamily: 'var(--font-display)',
           }}>
-            理性解读
-            <span style={{ marginLeft: '6px', fontSize: '10px', color: fromAI ? 'rgba(96,165,250,0.7)' : 'rgba(255,255,255,0.3)', letterSpacing: '1px' }}>
-              {fromAI ? 'AI 实时分析' : '专业解读'}
+            深度解读
+            <span style={{ marginLeft: '6px', fontSize: '10px', color: 'rgba(96,165,250,0.5)' }}>
+              AI 实时分析
             </span>
           </span>
         </div>
@@ -72,13 +64,11 @@ export default function InsightPanel({ gameType, data, visible }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
             <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
               style={{ display: 'inline-block', fontSize: '16px' }}>⏳</motion.span>
-            AI 正在分析你的决策模式...
+            AI 正在深度分析你的选择...
           </div>
-        ) : error ? (
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontStyle: 'italic' }}>{error}</p>
         ) : insight ? (
           <div style={{
-            color: 'rgba(255,255,255,0.7)',
+            color: 'rgba(255,255,255,0.75)',
             fontSize: '14px',
             lineHeight: 1.9,
             whiteSpace: 'pre-wrap',
