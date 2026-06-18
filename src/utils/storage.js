@@ -90,19 +90,57 @@ export const storage = {
     return diary;
   },
 
-  // 决策博物馆（local only）
-  getMuseum() { return this.get('museum') || []; },
-  addMuseumItem(item) {
-    const museum = this.getMuseum();
-    museum.unshift({ ...item, id: Date.now().toString(36), timestamp: new Date().toISOString(), likes: 0 });
-    this.set('museum', museum);
-    return museum;
+  // 决策博物馆（Supabase 公共可见）
+  async getMuseum() {
+    const { data } = await supabase
+      .from('museum_items')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    return data || [];
   },
-  toggleMuseumLike(id) {
-    const museum = this.getMuseum();
-    const idx = museum.findIndex((item) => item.id === id);
-    if (idx > -1) { museum[idx].likes = (museum[idx].likes || 0) + 1; this.set('museum', museum); }
-    return museum;
+
+  async addMuseumItem(title, description) {
+    const { data } = await supabase
+      .from('museum_items')
+      .insert({ title, description })
+      .select()
+      .single();
+    return data;
+  },
+
+  // 获取用户当天的点赞记录（用于判断是否已点赞）
+  async getUserLikesToday() {
+    const userId = await remote.getUser();
+    if (!userId) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from('museum_likes')
+      .select('item_id')
+      .eq('user_id', userId)
+      .eq('liked_at', today);
+    return (data || []).map(l => l.item_id);
+  },
+
+  // 点赞（返回 true 成功，false 已点赞过）
+  async toggleMuseumLike(itemId) {
+    const userId = await remote.getUser();
+    if (!userId) return { success: false, error: '请先登录' };
+    const today = new Date().toISOString().slice(0, 10);
+
+    // 尝试插入点赞记录
+    const { error } = await supabase
+      .from('museum_likes')
+      .insert({ user_id: userId, item_id: itemId, liked_at: today });
+
+    if (error) {
+      // 违反唯一约束 = 已点赞
+      return { success: false, error: '今天已为此决定点赞' };
+    }
+
+    // 增量更新展品点赞数
+    await supabase.rpc('increment_museum_like', { item_id: itemId });
+    return { success: true };
   },
 
   // 分享链接

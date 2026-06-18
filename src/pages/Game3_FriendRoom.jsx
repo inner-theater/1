@@ -257,6 +257,7 @@ export default function Game3_FriendRoom() {
   const [resultCard, setResultCard] = useState(null);
   const [posterUrl, setPosterUrl] = useState(null);
   const [generatingPoster, setGeneratingPoster] = useState(false);
+  const [hasDrawnCard, setHasDrawnCard] = useState(false);
 
   const generateAIQuestions = async () => {
     if (!question.trim()) return;
@@ -311,6 +312,8 @@ export default function Game3_FriendRoom() {
   };
 
   const submitAnswers = () => {
+    if (hasDrawnCard) return;
+    setHasDrawnCard(true);
     const card = TAROT_CARDS[Math.floor(Math.random() * TAROT_CARDS.length)];
     setResultCard(card);
     setShowResult(true);
@@ -494,12 +497,12 @@ export default function Game3_FriendRoom() {
                   <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '13px', marginBottom: '12px' }}>
                     已回答 {answeredCount}/{questions.length}
                   </p>
-                  <button onClick={submitAnswers} disabled={!allAnswered}
+                  <button onClick={submitAnswers} disabled={!allAnswered || hasDrawnCard}
                     style={{ padding: '14px 40px', borderRadius: '12px',
-                      background: allAnswered ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'rgba(255,255,255,0.08)',
-                      color: allAnswered ? '#fff' : 'rgba(255,255,255,0.3)', fontSize: '16px', fontWeight: 'bold', letterSpacing: '2px',
-                      border: 'none', cursor: allAnswered ? 'pointer' : 'not-allowed' }}>
-                    抽取你的塔罗牌
+                      background: (allAnswered && !hasDrawnCard) ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : 'rgba(255,255,255,0.08)',
+                      color: (allAnswered && !hasDrawnCard) ? '#fff' : 'rgba(255,255,255,0.3)', fontSize: '16px', fontWeight: 'bold', letterSpacing: '2px',
+                      border: 'none', cursor: (allAnswered && !hasDrawnCard) ? 'pointer' : 'not-allowed' }}>
+                    {hasDrawnCard ? '已抽取塔罗牌' : '抽取你的塔罗牌'}
                   </button>
                 </div>
               </div>
@@ -525,11 +528,11 @@ export default function Game3_FriendRoom() {
               </p>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>
-                <button onClick={() => { setAnswers({}); setShowResult(false); }}
+                <button onClick={() => { setAnswers({}); setShowResult(false); setHasDrawnCard(false); }}
                   style={{ padding: '12px 28px', borderRadius: '10px', background: 'rgba(168,85,247,0.2)', color: '#a855f7', border: '1px solid rgba(168,85,247,0.3)', fontSize: '14px', cursor: 'pointer' }}>
                   重新回答
                 </button>
-                <button onClick={() => { setStep('input'); setQuestions([]); setAnswers({}); setShowResult(false); }}
+                <button onClick={() => { setStep('input'); setQuestions([]); setAnswers({}); setShowResult(false); setHasDrawnCard(false); }}
                   style={{ padding: '12px 28px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.15)', fontSize: '14px', cursor: 'pointer' }}>
                   换个问题
                 </button>

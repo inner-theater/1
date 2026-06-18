@@ -8,8 +8,13 @@ const SUPABASE_FUNCTION_URL = 'https://uemvpdbuhzfomfstqias.supabase.co/function
 const DAILY_LIMIT = 3;
 
 const MODELS = [
-  { id: 'qwen-turbo', label: '通义千问 Turbo', desc: '快速 · 免费' },
-  { id: 'qwen-plus', label: '通义千问 Plus', desc: '深度 · 推荐' },
+  { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', desc: '顶级推理' },
+  { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash', desc: '快速推理' },
+  { id: 'kimi-k2.5', label: 'Kimi K2.5', desc: '长文本优先' },
+  { id: 'kimi-k2.6', label: 'Kimi K2.6', desc: '最新版本' },
+  { id: 'MiniMax-M2.1', label: 'MiniMax M2.1', desc: '深度分析' },
+  { id: 'qwen-turbo', label: '通义千问 Turbo', desc: '快速·免费' },
+  { id: 'qwen-plus', label: '通义千问 Plus', desc: '深度·推荐' },
 ];
 
 export default function DecisionDiary() {

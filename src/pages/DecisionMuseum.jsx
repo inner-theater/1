@@ -1,49 +1,79 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import storage from '../utils/storage';
-
-const games = {
-  'instinct-hand': '本能之手',
-  'parallel-letters': '平行时空来信',
-  'friend-room': '朋友灵魂拷问室',
-  'reverse-fear': '反向恐惧清单',
-  'value-auction': '价值天平拍卖会',
-};
-
-const emojis = {
-  'instinct-hand': '🤲',
-  'parallel-letters': '💌',
-  'friend-room': '🔮',
-  'reverse-fear': '🃏',
-  'value-auction': '⚖️',
-};
+import { useAuth } from '../contexts/AuthContext';
 
 export default function DecisionMuseum() {
   const [items, setItems] = useState([]);
+  const [likedIds, setLikedIds] = useState([]);
   const [showSubmit, setShowSubmit] = useState(false);
   const [submitTitle, setSubmitTitle] = useState('');
   const [submitDesc, setSubmitDesc] = useState('');
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [likeLoading, setLikeLoading] = useState({});
+  const { user } = useAuth();
 
   useEffect(() => {
-    setItems(storage.getMuseum());
+    loadItems();
   }, []);
 
-  const submitToMuseum = () => {
-    if (!submitTitle.trim()) return;
-    storage.addMuseumItem({
-      title: submitTitle,
-      description: submitDesc,
-      author: '匿名',
-    });
-    setItems(storage.getMuseum());
-    setSubmitTitle('');
-    setSubmitDesc('');
-    setShowSubmit(false);
+  const loadItems = async () => {
+    const data = await storage.getMuseum();
+    setItems(Array.isArray(data) ? data : []);
+    if (user) {
+      const liked = await storage.getUserLikesToday();
+      setLikedIds(liked);
+    }
   };
 
-  const toggleLike = (id) => {
-    storage.toggleMuseumLike(id);
-    setItems(storage.getMuseum());
+  const submitToMuseum = async () => {
+    if (!submitTitle.trim() || submitLoading) return;
+    if (!user) {
+      alert('请先登录后再发布');
+      return;
+    }
+    setSubmitLoading(true);
+    try {
+      await storage.addMuseumItem(submitTitle.trim(), submitDesc.trim());
+      setSubmitTitle('');
+      setSubmitDesc('');
+      setShowSubmit(false);
+      await loadItems();
+    } catch (e) {
+      alert('发布失败，请稍后再试');
+    }
+    setSubmitLoading(false);
+  };
+
+  const handleLike = async (itemId) => {
+    if (!user) {
+      alert('请先登录后再点赞');
+      return;
+    }
+    if (likedIds.includes(itemId)) return; // 已点过
+    if (likeLoading[itemId]) return;
+
+    setLikeLoading(prev => ({ ...prev, [itemId]: true }));
+    const result = await storage.toggleMuseumLike(itemId);
+    if (result.success) {
+      setLikedIds(prev => [...prev, itemId]);
+      // 更新本地的 likes 计数
+      setItems(prev => prev.map(item =>
+        item.id === itemId ? { ...item, likes: (item.likes || 0) + 1 } : item
+      ));
+    } else {
+      alert(result.error || '点赞失败');
+    }
+    setLikeLoading(prev => ({ ...prev, [itemId]: false }));
+  };
+
+  const formatTime = (ts) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now - d;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+    return d.toLocaleDateString('zh-CN');
   };
 
   return (
@@ -55,7 +85,7 @@ export default function DecisionMuseum() {
             人生决策博物馆
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>
-            每个人都在这里匿名展出一个自己做过的决定<br />或许别人的故事，会给你的选择一些启发
+            每个人匿名展出一个自己做过的决定<br />别人的故事，或许会给你的选择一些启发
           </p>
         </div>
 
@@ -70,6 +100,7 @@ export default function DecisionMuseum() {
               color: '#c9a84c',
               border: '1px solid rgba(201,168,76,0.3)',
               fontSize: '14px',
+              cursor: 'pointer',
             }}
           >
             {showSubmit ? '取消' : '+ 匿名展出一个决定'}
@@ -123,20 +154,25 @@ export default function DecisionMuseum() {
                   marginBottom: '12px',
                 }}
               />
-              <button
-                onClick={submitToMuseum}
-                disabled={!submitTitle.trim()}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  background: submitTitle.trim() ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.05)',
-                  color: submitTitle.trim() ? '#e8d48b' : 'rgba(255,255,255,0.2)',
-                  border: '1px solid rgba(201,168,76,0.3)',
-                  fontSize: '14px',
-                }}
-              >
-                匿名发布
-              </button>
+              {user ? (
+                <button
+                  onClick={submitToMuseum}
+                  disabled={!submitTitle.trim() || submitLoading}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '8px',
+                    background: submitTitle.trim() ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.05)',
+                    color: submitTitle.trim() ? '#e8d48b' : 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(201,168,76,0.3)',
+                    fontSize: '14px',
+                    cursor: submitTitle.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {submitLoading ? '发布中...' : '匿名发布'}
+                </button>
+              ) : (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>请先登录以匿名发布</p>
+              )}
             </motion.div>
           )}
         </div>
@@ -151,7 +187,7 @@ export default function DecisionMuseum() {
             border: '1px dashed rgba(201,168,76,0.2)',
           }}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏺</div>
-            <p style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '15px' }}>
               博物馆还是空的<br />做第一个匿名展出的人吧
             </p>
           </div>
@@ -215,21 +251,25 @@ export default function DecisionMuseum() {
                   fontSize: '12px',
                   color: 'rgba(255,255,255,0.35)',
                 }}>
-                  <span>{new Date(item.timestamp).toLocaleDateString('zh-CN')}</span>
+                  <span>{formatTime(item.created_at)}</span>
                   <button
-                    onClick={() => toggleLike(item.id)}
+                    onClick={() => handleLike(item.id)}
+                    disabled={likedIds.includes(item.id) || likeLoading[item.id]}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
                       background: 'none',
-                      color: '#c9a84c',
+                      color: likedIds.includes(item.id) ? '#e8d48b' : '#c9a84c',
                       fontSize: '13px',
                       padding: '4px 8px',
                       borderRadius: '6px',
+                      cursor: likedIds.includes(item.id) ? 'default' : 'pointer',
+                      border: likedIds.includes(item.id) ? '1px solid rgba(232,212,139,0.3)' : 'none',
+                      opacity: likedIds.includes(item.id) ? 0.7 : 1,
                     }}
                   >
-                    ❤️ {item.likes || 0}
+                    {likedIds.includes(item.id) ? '❤️ 已赞赏' : `❤️ ${item.likes || 0}`}
                   </button>
                 </div>
               </motion.div>
