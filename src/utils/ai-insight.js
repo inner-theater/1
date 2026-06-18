@@ -182,32 +182,41 @@ function fallback(gameType, c) {
     case 'friend-room': {
       const parts = [];
 
-      parts.push(`${variants[0]}你答了10道题，一个朋友站在旁边看你答完的。`);
+      parts.push(`${variants[0]}你刚刚答完了这10道灵魂拷问。不是考试，是一个朋友站在旁边看你做完的。`);
 
       if (tarotCard) {
-        parts.push(`抽到「${tarotCard}」——不是算命的牌，是你自己答题选出来的心理镜像。你选的答案指向它，它反过来解释你的选择。`);
+        parts.push(`抽到的牌是「${tarotCard}」。别把它当占卜——你选的答案就像一个个脚印，这张牌是脚印连起来的形状。它让你看见的不是"命运"，而是你已经在走的路。`);
       }
 
-      if (answerList.length > 0) {
+      if (answerList.length >= 3) {
+        // 挑选3道最有代表性的题目引用
+        const sample = answerList.slice(0, 3);
+        sample.forEach(a => {
+          parts.push(`看到第${a.no}题"${a.q || '这道题'}"——你选了"${a.selected || '你的答案'}"。这个选择本身就在说话，甚至比题目问的还清楚。`);
+        });
+
+        // 快慢分析
         const fastOnes = answerList.filter(a => a.speed === 'fast' || (a.responseTime && parseFloat(a.responseTime) < 1));
         const slowOnes = answerList.filter(a => a.speed === 'slow' || (a.responseTime && parseFloat(a.responseTime) > 3));
-        if (fastOnes.length > 0) {
-          parts.push(`第${fastOnes.map(a => a.no).join('、')}题你答得很快——这些你心里清楚。`);
+        if (fastOnes.length >= 2) {
+          parts.push(`${fastOnes.length}道题你几乎是秒答——第${fastOnes.map(a => a.no).join('、')}题。这些是你心里笃定的地带，不需要犹豫。一个人秒答的题往往不是"简单的题"，而是"已经答过无数次的题"——在深夜、在地铁上、在洗澡时。`);
         }
-        if (slowOnes.length > 0) {
-          parts.push(`第${slowOnes.map(a => a.no).join('、')}题你犹豫了——这些你还需要跟自己聊聊。`);
+        if (slowOnes.length >= 2) {
+          parts.push(`${slowOnes.length}道题你犹豫了——第${slowOnes.map(a => a.no).join('、')}题。犹豫的地方往往不是"最难的"，而是"还没跟自己聊过的"。这些犹豫是你的导航——它告诉你去哪儿。`);
         }
-        // 看看回答模式
-        if (answerList.length >= 3) {
-          const selections = answerList.map(a => a.selected);
-          const uniqueCount = new Set(selections).size;
-          if (uniqueCount <= 2 && selections.length >= 5) {
-            parts.push(`你的答案有很强的重复性——不是你没认真选，是你的心理模式很清晰。你在大多数情况下都会走同一条路。这不是局限，这是你的底色。`);
-          }
+
+        // 矛盾/一致性分析
+        const selections = answerList.map(a => a.selected);
+        const uniqueCount = new Set(selections).size;
+        if (uniqueCount <= 2 && selections.length >= 5) {
+          parts.push(`我注意到了一个事情——你的10个答案里，反复出现的选项只有${uniqueCount}种。你嘴上说在纠结，你的手却一直在选同样的东西。这不是局限，是一种安静的坚定。很多人需要学怎么坚持，你需要学的是怎么相信自己的坚持。`);
+        }
+        if (uniqueCount >= 6 && selections.length >= 6) {
+          parts.push(`你的答案散落在各个方向——别人可能觉得你"摇摆不定"，但我不这么看。你能从那么多不同角度看问题，说明你不是没立场，而是比大多数人更能理解世界是复杂的。你的纠结不是因为没主见，是因为有同理心。`);
         }
       }
 
-      parts.push(`你纠结的是"${question || '这件事'}"。10道题答完，你的倾向已经非常清楚了——只是答案太过明显，你反而不太敢相信。但你都敢借朋友的目光来拷问自己了，还有什么好怕的。`);
+      parts.push(`你纠结的那个问题是"${question || '这件事'}"。10道题答完——其实你已经知道答案了。朋友拷问你的目的不是给你一个新答案，是让你借另一双眼睛，看见你早就知道的事。现在你看见了。剩下的不是"想清楚"，是"敢不敢按着想的去做"。你已经走了好几步了，再往前走一点就好。`);
 
       return parts.join('\n\n');
     }

@@ -167,7 +167,13 @@ serve(async (req) => {
         const answersLines = Array.isArray(context.answers)
           ? context.answers.filter(a => a.selected && a.selected !== '未作答').map(a => `第${a.no}题：「${a.q}」→「${a.selected}」`).join('\n')
           : (context.feedback || '');
-        userPrompt = `用户玩"朋友灵魂拷问室"——10道AI生成的灵魂选择题。他纠结「${context.question || ''}」。回答：${answersLines || '未记录'}。塔罗牌：${context.tarotCard || '未记录'}。从他的答题模式中找出他自己都没注意到的倾向——矛盾、一致、回避。结合塔罗牌的含义做深层关联。不要套公式，要像老朋友帮他复盘。800-1000字。`;
+        userPrompt = `用户玩"朋友灵魂拷问室"——10道AI生成的灵魂选择题，每题4个选项，借朋友的口吻拷问用户。他纠结「${context.question || ''}」。他的回答：${answersLines || '未记录'}。抽到塔罗牌：${context.tarotCard || '未记录'}。
+
+请像老朋友坐下来帮他复盘，写800-1000字的深度分析：
+1. 引用3-5道具体题目原文和他的选择——找他的答题模式：哪些是秒选的（内心笃定）？哪些犹豫了（模糊地带）？前后有没有矛盾（比如前面选稳定，后面选冒险）？
+2. 塔罗牌和他的答题倾向形成什么对话？不是为了占卜——是借塔罗的视角帮他看到自己没注意的心理模式。
+3. 给出有洞察力的个人化解读——不说"你很纠结"这种废话，而是"你表面怕的是失败，但你的答案告诉我你真正怕的是让某个人失望"这种级别的理解。
+4. 最后用一句真正了解他之后才说得出口的话收尾。`;
         break;
       }
       case 'diary-analysis':
@@ -197,15 +203,25 @@ serve(async (req) => {
 不要讲大道理、不要总结人生意义、不要"亲爱的你"。就是坐下来跟我聊聊。有画面感、有真实的生活气息。${context.year === 1 ? '400' : context.year === 3 ? '600' : '800'}字左右。`;
         break;
       case 'generate-questions':
-        systemPrompt = '你是一位精通塔罗牌哲学的创意拷问者。针对用户的具体纠结设计直击灵魂的选择题。每次必须独一无二、绝不重复。直接输出JSON数组。';
-        temperature = 1.15;
-        maxTokens = 1200;
+        systemPrompt = '你是一位精通塔罗牌哲学的创意灵魂拷问者。针对用户的具体纠结，设计深度选择题。你必须做到：每次生成的题目完全不同，视角多变，不重复不套路。直接输出JSON数组。';
+        temperature = 1.2;
+        maxTokens = 1500;
         const shuffleSeed = Date.now() % 100000 + Math.floor(Math.random() * 90000);
         const shuffled = TAROT_ARCHETYPES.sort(() => Math.random() - 0.5);
-        const pickCount = 4 + Math.floor(Math.random() * 4);
+        const pickCount = 5 + Math.floor(Math.random() * 4);
         const selectedArchetypes = shuffled.slice(0, pickCount);
         const archetypeContext = selectedArchetypes.map(a => `- ${a}`).join('\n');
-        userPrompt = `用户纠结：「${context.question || ''}」\n\n生成10道灵魂拷问选择题，每道4个选项。必须紧扣他的具体问题，不能用通用题。从以下塔罗原型借视角：${archetypeContext}\n4个选项形成有意义的对照。题目从具体到深层。随机种子${shuffleSeed}，每次必须不同。\n\n输出：[{"q":"题面","options":["A.一","B.二","C.三","D.四"]},...]`;
+        userPrompt = `用户纠结：「${context.question || ''}」
+
+生成10道灵魂拷问选择题，每道4个选项（A/B/C/D）。核心要求：
+1. 紧密结合他的具体问题——如果他是问换工作，就问职业、勇气、安全感、自我价值相关的；如果是感情问题，就问亲密关系、信任、取舍相关的。绝对不能用"你最近开心吗"这种通用题敷衍。
+2. 每一道题的8道以上要让他"犹豫一下"——不是好和坏的对比，而是两种真实可能性的对峙。
+3. 从以下塔罗原型借视角和深度（随机使用其中一部分）：
+${archetypeContext}
+4. 题目有递进层次——前3道接近表面现实，中间4道深入内心，最后3道触及人生价值和终极恐惧。
+5. 随机种子为${shuffleSeed}——每次必须产出完全不同的题目集。
+
+输出严格JSON数组：[{"q":"直面灵魂的题面","options":["A.有深度的选项","B.有深度的选项","C.有深度的选项","D.有深度的选项"]},...]`;
         break;
       case 'personality-test':
         systemPrompt = '你是一个温和而有洞察力的人格分析师。你了解大五人格模型(OCEAN)，能做深入但不说教的解读。像朋友聊天一样分析，不要套公式，不要贴标签。800字左右。';
