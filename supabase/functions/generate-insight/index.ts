@@ -81,9 +81,36 @@ serve(async (req) => {
         userPrompt = `用户玩"反向恐惧清单"，纠结「${context.question || ''}」。他的全部恐惧：${context.allFears || ''}。逐个删除后留下的底线是「${context.kept || '无'}」，能接受删除的是「${context.removed || '无'}」。请结合他的具体恐惧项语义，分析他内心真正害怕什么、重视什么，给一句温暖的鼓励或具体的行动建议。不要标题，200字以内。`;
         break;
 
-      case 'value-auction':
-        userPrompt = `用户玩"价值天平拍卖会"，纠结「${context.question || ''}」。他的金币分配：${context.bidsDetail || ''}。最终倾向「${context.result || ''}」。请解读他的价值排序意味什么，不要标题，150字。`;
+      case 'value-auction': {
+        // bids 全部拍品详情
+        const bidDetails = Array.isArray(context.bids) && context.bids.length > 0
+          ? context.bids.sort((a, b) => b.amount - a.amount)
+              .map(b => `${b.icon}${b.name}：${b.amount}金币`)
+              .join('，')
+          : (context.bidsDetail || '');
+        // skipped 跳过的价值
+        const skippedList = Array.isArray(context.skipped) && context.skipped.length > 0
+          ? context.skipped.map(s => `${s.icon}${s.name}`).join('、')
+          : '';
+        const remaining = context.remainingGold != null ? context.remainingGold : 0;
+
+        userPrompt = `用户玩"价值天平拍卖会"，纠结「${context.question || ''}」，在「${Array.isArray(context.options) ? context.options.join(' vs ') : context.options}」之间做选择。
+
+他的金币分配（从高到低）：${bidDetails || '未记录'}
+${remaining > 0 ? `⚠️ 注意：他还剩 ${remaining} 枚金币没花出去。` : '💰 他花光了全部100枚金币。'}
+${skippedList ? `⏭️ 他跳过了这些价值：${skippedList}。` : '他一个价值都没跳过。'}
+
+最终天平倾向于：「${context.result || ''}」
+
+请结合以上所有信息，做一段直击内心的解读：
+1. 从金币分配中分析他真正在意什么——花最多的钱在哪些价值上？花得少的呢？为什么会有这种梯度？
+2. 如果有剩余金币，说明什么心理——是在等一个还没出现的价值？还是对前面的选择都没完全投入？
+3. 跳过的价值中，有没有哪个其实是他嘴上说不在乎、但潜意识里可能需要的？戳他一下。
+4. 他最后的倾向和他买下的价值之间，是内在一致还是有冲突？如果一致，说明他很了解自己；如果冲突，问问他原因。
+
+不要标题，不要markdown，像深夜和一个了解你的朋友聊天一样，可以适当反问让他自己想。250字左右。`;
         break;
+      }
 
       case 'parallel-letters':
         userPrompt = `用户读了不同未来的信。他在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。触动他的句子：${context.highlights || '无'}。请用这两个具体选项来组织你的分析，温暖鼓励，不要标题，200字。`;

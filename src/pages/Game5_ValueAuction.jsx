@@ -363,14 +363,14 @@ export default function Game5_ValueAuction() {
                       visible={true}
                       context={{
                         question,
-                        options: options.filter((o) => o.trim()).join('、'),
-                        bidsDetail: Object.entries(bids)
-                          .map(([vid, amount]) => {
-                            const v = VALUES.find((x) => x.id === parseInt(vid));
-                            return v ? `${v.icon}${v.name}(${amount}金币)` : '';
-                          })
-                          .filter(Boolean)
-                          .join('、'),
+                        options: options.filter((o) => o.trim()),
+                        bids: Object.entries(bids).map(([vid, amount]) => {
+                          const v = VALUES.find((x) => x.id === parseInt(vid));
+                          return v ? { name: v.name, icon: v.icon, amount } : null;
+                        }).filter(Boolean),
+                        skipped: VALUES.filter(v => !bids[v.id]).map(v => ({ name: v.name, icon: v.icon })),
+                        totalSpent,
+                        remainingGold: 100 - totalSpent,
                         result: matchedOption >= 0 ? options[matchedOption] : '',
                       }}
                     />
