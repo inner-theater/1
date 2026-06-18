@@ -15,6 +15,23 @@ const MODEL_QUEUE = [
   'qwen-plus',
 ];
 
+const TAROT_ARCHETYPES = [
+  '愚者（The Fool）：关于勇气、冒险、未知',
+  '隐士（The Hermit）：关于独处、内省、向内寻找答案',
+  '恋人（The Lovers）：关于选择、价值观冲突、忠于内心',
+  '命运之轮（Wheel of Fortune）：关于时机、运气、顺势而为',
+  '力量（Strength）：关于内在力量、耐心与驯服',
+  '正义（Justice）：关于公平、因果、权衡利弊',
+  '星星（The Star）：关于希望、信念、疗愈',
+  '月亮（The Moon）：关于恐惧、潜意识、不确定性',
+  '太阳（The Sun）：关于明朗、快乐、清晰的答案',
+  '塔（The Tower）：关于打破、重建、被迫改变',
+  '审判（Judgment）：关于觉醒、反思、重获新生',
+  '节制（Temperance）：关于平衡、调和、耐心等待',
+  '死神（Death）：关于结束、转变、新的开始',
+  '世界（The World）：关于圆满、完成、新的旅程',
+];
+
 const corsHeaders = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
@@ -92,24 +109,20 @@ serve(async (req) => {
 
       case 'generate-questions': {
         systemPrompt = `你是一个创意十足的灵魂拷问者，精通塔罗牌哲学。为用户纠结的问题设计个性化选择题。直接输出JSON数组，不要任何其他文字。`;
-        temperature = 0.9;
-        maxTokens = 800;
-        userPrompt = `用户纠结：「${context.question || ''}」。请生成10个灵魂拷问选择题，每道题4个选项（A/B/C/D）。
+        temperature = 1.05;
+        maxTokens = 1000;
+        const shuffleSeed = Math.floor(Math.random() * 10000);
+        const shuffledArchetypes = TAROT_ARCHETYPES.sort(() => Math.random() - 0.5);
+        userPrompt = `用户纠结：「${context.question || ''}」。请生成10个灵魂拷问选择题，每道题4个选项（A/B/C/D）。随机种子：${shuffleSeed}。
+
+重要：每次生成的题目必须不同，要有创意和变化。即使是同一个用户问题，每次也应该从不同角度切入。
 
 要求：
 1. 紧扣他纠结的具体问题——如果问题是关于跳槽，就问职业选择相关的；如果是感情问题，就问亲密关系相关的。不要使用泛泛的通用问题。
-2. 融入塔罗牌的知识逻辑——参考以下塔罗牌原型来设计题目方向：
-   - 愚者（The Fool）：关于勇气、冒险、未知
-   - 隐士（The Hermit）：关于独处、内省、向内寻找答案
-   - 恋人（The Lovers）：关于选择、价值观冲突、忠于内心
-   - 命运之轮（Wheel of Fortune）：关于时机、运气、顺势而为
-   - 力量（Strength）：关于内在力量、耐心与驯服
-   - 正义（Justice）：关于公平、因果、权衡利弊
-   - 星星（The Star）：关于希望、信念、疗愈
-   - 月亮（The Moon）：关于恐惧、潜意识、不确定性
-   - 太阳（The Sun）：关于明朗、快乐、清晰的答案
-   - 塔（The Tower）：关于打破、重建、被迫改变
+2. 融入塔罗牌的知识逻辑——从以下原型中随机挑5-6个来启发题目方向（不要全部用，每次选不同的）：
+${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
 3. 每道题的选项应该形成有意义的对比——让选择能真正揭示不同的心理倾向，而不是随意4个选项。
+4. 题目要有层次感——从表面事实逐步深入内心，后面几道题应该比前面更深。
 
 输出格式严格为JSON数组：[{"q":"题面","options":["A.选项一","B.选项二","C.选项三","D.选项四"]},...]`;
         break;
