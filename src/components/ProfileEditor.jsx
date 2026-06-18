@@ -1,15 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import AvatarSelector from './AvatarSelector';
 
 export default function ProfileEditor({ visible, onClose }) {
   const { user, profile, updateProfile } = useAuth();
-  const [gender, setGender] = useState(profile?.gender || 'male');
-  const [avatar, setAvatar] = useState(profile?.avatar || '');
-  const [nickname, setNickname] = useState(profile?.nickname || '');
+  const [gender, setGender] = useState('male');
+  const [avatar, setAvatar] = useState('');
+  const [nickname, setNickname] = useState('');
   const [saving, setSaving] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
+
+  // Sync profile data when editor opens
+  useEffect(() => {
+    if (visible && profile) {
+      setGender(profile.gender || 'male');
+      setAvatar(profile.avatar || '');
+      setNickname(profile.nickname || '');
+    }
+  }, [visible, profile]);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;

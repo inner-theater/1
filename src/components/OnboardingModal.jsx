@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import AvatarSelector from './AvatarSelector';
@@ -11,6 +11,16 @@ export default function OnboardingModal({ visible, onClose }) {
   const [nickname, setNickname] = useState('');
   const [saving, setSaving] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
+
+  // Reset when modal opens
+  useEffect(() => {
+    if (visible) {
+      setStep('gender');
+      setGender('');
+      setAvatar('');
+      setNickname('');
+    }
+  }, [visible]);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;

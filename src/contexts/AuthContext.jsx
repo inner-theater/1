@@ -11,9 +11,11 @@ export function AuthProvider({ children }) {
 
   // Load profile whenever user changes
   const loadProfile = useCallback(async (userId) => {
-    if (!userId) { setProfile(null); return; }
+    if (!userId) { setProfile(null); setLoading(false); return; }
+    setLoading(true);
     const p = await getProfile(userId);
     setProfile(p);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -28,16 +30,11 @@ export function AuthProvider({ children }) {
       const u = session?.user ?? null;
       setUser(u);
       if (u) loadProfile(u.id);
-      else { setProfile(null); }
+      else { setProfile(null); setLoading(false); }
     });
 
     return () => subscription.unsubscribe();
   }, [loadProfile]);
-
-  // Once profile is loaded (or determined null), stop loading
-  useEffect(() => {
-    if (user === null || profile !== undefined) setLoading(false);
-  }, [user, profile]);
 
   const signUp = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
