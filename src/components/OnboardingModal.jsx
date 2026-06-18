@@ -23,7 +23,9 @@ export default function OnboardingModal({ visible, onClose }) {
     onClose();
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    // Write empty profile so onboarding doesn't show again
+    await updateProfile({ nickname: '', gender: '', avatar: '' });
     onClose();
   };
 
@@ -110,7 +112,7 @@ export default function OnboardingModal({ visible, onClose }) {
                       background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
                       border: '1px solid rgba(255,255,255,0.1)', fontSize: '14px', cursor: 'pointer',
                     }}>
-                    ← 返回
+                    返回
                   </button>
                   <button onClick={() => setStep('nickname')} disabled={!avatar}
                     style={{
@@ -120,7 +122,7 @@ export default function OnboardingModal({ visible, onClose }) {
                       border: 'none', fontSize: '14px', cursor: avatar ? 'pointer' : 'not-allowed',
                       fontWeight: 'bold',
                     }}>
-                    继续 →
+                    继续
                   </button>
                 </div>
               </div>
@@ -156,7 +158,7 @@ export default function OnboardingModal({ visible, onClose }) {
                       background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
                       border: '1px solid rgba(255,255,255,0.1)', fontSize: '14px', cursor: 'pointer',
                     }}>
-                    ← 返回
+                    返回
                   </button>
                   <button onClick={handleSave} disabled={!nickname.trim() || saving}
                     style={{
