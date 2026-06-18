@@ -28,7 +28,7 @@ export default function InsightPanel({ gameType, context, visible }) {
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0, maxHeight: 0, marginTop: 0 }}
-        animate={{ opacity: 1, maxHeight: 600, marginTop: 20 }}
+        animate={{ opacity: 1, maxHeight: 'min(600px, 70vh)', marginTop: 20 }}
         exit={{ opacity: 0, maxHeight: 0, marginTop: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
         style={{
@@ -36,6 +36,8 @@ export default function InsightPanel({ gameType, context, visible }) {
           borderRadius: '12px',
           background: 'rgba(26,10,46,0.7)',
           border: '1px solid rgba(96,165,250,0.2)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>

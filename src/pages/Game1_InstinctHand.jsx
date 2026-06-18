@@ -37,19 +37,20 @@ function OrbBalls({ balls, onCatch, disabled, blindMode, showInterference }) {
     if (!showInterference || disabled) { setInterferenceMsgs([]); return; }
     const spawn = () => {
       setInterferenceMsgs((prev) => [
-        ...prev.slice(-4),
+        ...prev.slice(-5),
         {
           id: Date.now(),
           text: INTERFERENCE[Math.floor(Math.random() * INTERFERENCE.length)],
-          x: 10 + Math.random() * 80,
-          y: 10 + Math.random() * 80,
-          dx: (Math.random() - 0.5) * 40,
-          dy: (Math.random() - 0.5) * 30,
+          // Use CSS left/top percentages (parent-relative) instead of framer x/y (element-relative)
+          left: 15 + Math.random() * 70,
+          top: 15 + Math.random() * 70,
+          dLeft: (Math.random() - 0.5) * 35,
+          dTop: (Math.random() - 0.5) * 25,
         },
       ]);
     };
     spawn();
-    const timer = setInterval(spawn, 600);
+    const timer = setInterval(spawn, 700);
     return () => clearInterval(timer);
   }, [showInterference, disabled]);
 
@@ -96,11 +97,13 @@ function OrbBalls({ balls, onCatch, disabled, blindMode, showInterference }) {
         {interferenceMsgs.map((msg) => (
           <motion.div
             key={msg.id}
-            initial={{ opacity: 0, scale: 0.5, x: `${msg.x}%`, y: `${msg.y}%` }}
-            animate={{ opacity: [0, 0.65, 0.4, 0], x: `${msg.x + msg.dx}%`, y: `${msg.y + msg.dy}%` }}
-            transition={{ duration: 1.8, ease: 'easeOut' }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: [0, 0.65, 0.4, 0] }}
+            transition={{ duration: 2.0, ease: 'easeOut' }}
             style={{
               position: 'absolute',
+              left: `${msg.left}%`,
+              top: `${msg.top}%`,
               fontSize: '18px',
               fontWeight: 'bold',
               fontFamily: 'var(--font-display)',
@@ -110,6 +113,7 @@ function OrbBalls({ balls, onCatch, disabled, blindMode, showInterference }) {
               zIndex: 20,
               whiteSpace: 'nowrap',
               pointerEvents: 'none',
+              transform: 'translate(-50%, -50%)',
             }}
           >
             {msg.text}
@@ -412,7 +416,8 @@ export default function Game1_InstinctHand() {
 
     const shuffled = [...validOpts].sort(() => Math.random() - 0.5);
     const count = shuffled.length;
-    const edge = 14;
+    // More generous edge margin so orbs never clip outside container
+    const edge = count <= 3 ? 22 : count <= 4 ? 20 : 18;
 
     // Distribute ball starting positions evenly across the stage
     const gridPositions = [];
@@ -431,14 +436,14 @@ export default function Game1_InstinctHand() {
     const gameBalls = shuffled.map((opt, i) => {
       const pos = gridPositions[i];
       // Slight random offset so not perfectly rigid
-      const bx = pos.x + (Math.random() - 0.5) * 12;
-      const by = pos.y + (Math.random() - 0.5) * 12;
+      const bx = pos.x + (Math.random() - 0.5) * 10;
+      const by = pos.y + (Math.random() - 0.5) * 10;
       // Max range capped so orb never exits the container
       const maxXRange = Math.min(bx - edge, 100 - edge - bx);
       const maxYRange = Math.min(by - edge, 100 - edge - by);
-      // Target a large range, but never exceed the safe bound
-      const xRange = Math.min(maxXRange, 35 + Math.random() * 25);
-      const yRange = Math.min(maxYRange, 30 + Math.random() * 22);
+      // Target range conservatively within safe bounds
+      const xRange = Math.max(6, Math.min(maxXRange * 0.7, 28));
+      const yRange = Math.max(6, Math.min(maxYRange * 0.7, 26));
 
       return {
         id: i,
