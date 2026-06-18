@@ -621,36 +621,72 @@ const TAROT_CARDS = [
 ];
 
 function getDefaultQuestions(dilemma) {
+  const d = (dilemma || '这个问题').slice(0, 20);
+  const keywords = d.replace(/[？?！!，。、\s]/g, '');
+  // 动态生成选项，和用户的纠结关键词关联
+  const moodAB = `选了${keywords}是一条路`;
+  const moodCD = `不选${keywords}是另一条路`;
+
   return [
-    { id: 0, q: '如果你最好的朋友和你面临一模一样的处境，你会给他什么建议？', options: [
-      { label: 'A', text: '果断选一条路，别纠结' }, { label: 'B', text: '再等等，看情况' }, { label: 'C', text: '让直觉做决定' }, { label: 'D', text: '列个清单比一比' },
+    { id: 0, q: `面对「${d}...」这个选择，你觉得最让你夜不能寐的是什么？`, options: [
+      { label: 'A', text: `怕选错了没法回头` },
+      { label: 'B', text: `怕错过另一个可能更好的` },
+      { label: 'C', text: `怕让身边重要的人失望` },
+      { label: 'D', text: `怕自己其实还没想清楚` },
     ]},
-    { id: 1, q: `面对「${dilemma.slice(0, 10)}...」这个选择，你最怕的是什么？`, options: [
-      { label: 'A', text: '选了之后后悔' }, { label: 'B', text: '错过另一个机会' }, { label: 'C', text: '让在乎的人失望' }, { label: 'D', text: '发现自己其实根本不清楚想要什么' },
+    { id: 1, q: `如果现在的你一定要二选一——感觉你的身体在往哪边倾？`, options: [
+      { label: 'A', text: `往前，想冲一把` },
+      { label: 'B', text: `往后，想先稳住` },
+      { label: 'C', text: `僵在原地，动不了` },
+      { label: 'D', text: `说不清，感觉身体和大脑在打架` },
     ]},
-    { id: 2, q: '如果你现在已经有答案了，你的身体有什么感觉？', options: [
-      { label: 'A', text: '心跳加速，很兴奋' }, { label: 'B', text: '胃有点紧，很紧张' }, { label: 'C', text: '没什么特别的感觉' }, { label: 'D', text: '松了口气' },
+    { id: 2, q: `关于「${keywords}」，你觉得身边最懂你的人会怎么评价？`, options: [
+      { label: 'A', text: `他觉得我该果断选` },
+      { label: 'B', text: `他觉得我该再想想` },
+      { label: 'C', text: `他不会给建议，但会陪着我` },
+      { label: 'D', text: `我从来没跟任何人聊过这件事` },
     ]},
-    { id: 3, q: '你觉得五年后的自己回头看这个决定，会说什么？', options: [
-      { label: 'A', text: '干得好，当时就该这么选' }, { label: 'B', text: '没事的，选什么都会成长' }, { label: 'C', text: '那件事其实没那么重要' }, { label: 'D', text: '谢谢你当时认真想了' },
+    { id: 3, q: `如果把「${keywords}」比作一种天气，你觉得现在是什么天？`, options: [
+      { label: 'A', text: `大雾，看不清前面的路` },
+      { label: 'B', text: `雷雨前的闷热，感觉要炸了` },
+      { label: 'C', text: `阴天，没那么糟但也不见光` },
+      { label: 'D', text: `晴间多云，其实我知道答案` },
     ]},
-    { id: 4, q: '在你纠结的这段时间，有没有一个人让你特别想听听他/她的意见？', options: [
-      { label: 'A', text: '有，而且我知道他/她会说什么' }, { label: 'B', text: '有，但不敢问' }, { label: 'C', text: '没有特别想找的人' }, { label: 'D', text: '我只想听自己的' },
+    { id: 4, q: `你第一次意识到自己在纠结这件事，是什么时候？那个场景你还记得吗？`, options: [
+      { label: 'A', text: `印象深刻，某个具体瞬间` },
+      { label: 'B', text: `慢慢累积的，记不清起点` },
+      { label: 'C', text: `别人提了一嘴我才开始想` },
+      { label: 'D', text: `其实一直隐隐约约都有，只是最近变强烈了` },
     ]},
-    { id: 5, q: '如果这个选择是一道菜，你觉得它是什么味道？', options: [
-      { label: 'A', text: '酸甜的，有期待也有不安' }, { label: 'B', text: '辣的，很有挑战性' }, { label: 'C', text: '淡淡的，顺其自然' }, { label: 'D', text: '苦的，但知道有回甘' },
+    { id: 5, q: `关于「${keywords}」，你过去做过最接近这个选择的一个决定是什么？`, options: [
+      { label: 'A', text: `有类似的，当时我选了冲` },
+      { label: 'B', text: `有类似的，当时我选了稳` },
+      { label: 'C', text: `没有类似的，这是全新的` },
+      { label: 'D', text: `我一直在回避类似的选择` },
     ]},
-    { id: 6, q: '用一句话说服现在的你——你会说什么？', options: [
-      { label: 'A', text: '不做会后悔' }, { label: 'B', text: '你已经准备好了' }, { label: 'C', text: '不管选什么，你都能应对' }, { label: 'D', text: '别想太多，去就对了' },
+    { id: 6, q: `如果做完决定后你可以立刻给自己一个奖励，你会选什么？`, options: [
+      { label: 'A', text: `吃一顿好的，犒劳自己` },
+      { label: 'B', text: `什么都不做，就好好睡一觉` },
+      { label: 'C', text: `找最好的朋友聊一晚上` },
+      { label: 'D', text: `不需要奖励，决定了本身就是释放` },
     ]},
-    { id: 7, q: '你最后一次因为什么事情笑到停不下来？', options: [
-      { label: 'A', text: '朋友说了个笑话' }, { label: 'B', text: '看了一部好电影' }, { label: 'C', text: '自己干了件傻事' }, { label: 'D', text: '记不清了' },
+    { id: 7, q: `你觉得做这个决定时，最不需要参考的是什么？`, options: [
+      { label: 'A', text: `别人怎么想` },
+      { label: 'B', text: `万一失败了怎么办` },
+      { label: 'C', text: `时间够不够` },
+      { label: 'D', text: `过去的经验` },
     ]},
-    { id: 8, q: '如果做完选择后可以吃一顿庆祝饭，你想吃什么？', options: [
-      { label: 'A', text: '火锅，热热闹闹的' }, { label: 'B', text: '日料，精致安静的' }, { label: 'C', text: '自己做的，踏实的' }, { label: 'D', text: '无所谓，吃什么都行' },
+    { id: 8, q: `五年后的你回头看「${keywords}」这件事，你觉得那时的你会怎么形容现在的你？`, options: [
+      { label: 'A', text: `当时想太多了` },
+      { label: 'B', text: `感谢当时认真想过` },
+      { label: 'C', text: `不记得有这回事了` },
+      { label: 'D', text: `那是一个转折点` },
     ]},
-    { id: 9, q: '闭上眼睛三秒，你第一个看到的画面是什么？', options: [
-      { label: 'A', text: '一片开阔的风景' }, { label: 'B', text: '熟悉的家或街道' }, { label: 'C', text: '一个模糊的背影' }, { label: 'D', text: '一片空白' },
+    { id: 9, q: `闭上眼睛三秒，关于这个选择你脑海里最先跳出哪个词？`, options: [
+      { label: 'A', text: `${keywords}（果断）` },
+      { label: 'B', text: `${keywords}（害怕）` },
+      { label: 'C', text: `${keywords}（自由）` },
+      { label: 'D', text: `${keywords}（等等）` },
     ]},
   ];
 }

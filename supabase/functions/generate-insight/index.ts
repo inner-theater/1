@@ -242,21 +242,26 @@ ${answersLines || '未记录'}
         break;
 
       case 'generate-questions':
-        systemPrompt = `你是一个创意十足的灵魂拷问者，精通塔罗牌哲学。为用户纠结的问题设计个性化选择题。直接输出JSON数组，不要任何其他文字。`;
-        temperature = 1.05;
-        maxTokens = 1000;
-        const shuffleSeed = Math.floor(Math.random() * 10000);
-        const shuffledArchetypes = TAROT_ARCHETYPES.sort(() => Math.random() - 0.5);
-        userPrompt = `用户纠结：「${context.question || ''}」。请生成10个灵魂拷问选择题，每道题4个选项（A/B/C/D）。随机种子：${shuffleSeed}。
+        systemPrompt = `你是一位精通塔罗牌哲学的创意拷问者。你擅长针对用户的具体纠结设计直击灵魂的选择题。每次生成的问题必须独一无二、富有创意、绝不重复。直接输出JSON数组，不要任何其他文字。`;
+        temperature = 1.15;
+        maxTokens = 1200;
+        const shuffleSeed = Date.now() % 100000 + Math.floor(Math.random() * 90000);
+        // 每次随机打乱全部塔罗原型，选不同的子集
+        const shuffled = TAROT_ARCHETYPES.sort(() => Math.random() - 0.5);
+        const pickCount = 4 + Math.floor(Math.random() * 4); // 4-7个
+        const selectedArchetypes = shuffled.slice(0, pickCount);
+        const archetypeContext = selectedArchetypes.map(a => `- ${a}`).join('\n');
+        userPrompt = `用户纠结：「${context.question || ''}」
 
-重要：每次生成的题目必须不同，要有创意和变化。即使是同一个用户问题，每次也应该从不同角度切入。
+请针对这个问题生成10道灵魂拷问选择题，每道题4个选项（A/B/C/D）。
 
-要求：
-1. 紧扣他纠结的具体问题——如果问题是关于跳槽，就问职业选择相关的；如果是感情问题，就问亲密关系相关的。不要使用泛泛的通用问题。
-2. 融入塔罗牌的知识逻辑——从以下原型中随机挑5-6个来启发题目方向（不要全部用，每次选不同的）：
-${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
-3. 每道题的选项应该形成有意义的对比——让选择能真正揭示不同的心理倾向，而不是随意4个选项。
-4. 题目要有层次感——从表面事实逐步深入内心，后面几道题应该比前面更深。
+重要要求：
+1. 每道题必须紧扣他的具体问题——如果问题是关于感情/工作/人生选择的，就问相关的。不能用通用问题敷衍。
+2. 从以下塔罗原型中借取视角来设计（这些原型启发不同的心理维度）：
+${archetypeContext}
+3. 每道题的4个选项必须形成有意义的对照——让选择能揭示不同的心理倾向。
+4. 题目有层次感——从具体事实逐渐深入到内在感受和人生价值观。
+5. 这道题的随机种子是 ${shuffleSeed}，每次生成的题目必须完全不同。
 
 输出格式严格为JSON数组：[{"q":"题面","options":["A.选项一","B.选项二","C.选项三","D.选项四"]},...]`;
         break;
