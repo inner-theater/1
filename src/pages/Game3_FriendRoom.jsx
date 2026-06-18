@@ -258,6 +258,8 @@ export default function Game3_FriendRoom() {
   const [posterUrl, setPosterUrl] = useState(null);
   const [generatingPoster, setGeneratingPoster] = useState(false);
   const [hasDrawnCard, setHasDrawnCard] = useState(false);
+  const [friendAnswers, setFriendAnswers] = useState([]);
+  const [shareCode, setShareCode] = useState('');
 
   const generateAIQuestions = async () => {
     if (!question.trim()) return;
@@ -277,6 +279,7 @@ export default function Game3_FriendRoom() {
         // 预创建分享链接
         const code = storage.createShareLink('friend-room', { question: currentQ, questions: formatted });
         setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
+        setShareCode(code);
         setStep('sharing');
       } else {
         const fallbackQs = getDefaultQuestions(currentQ);
@@ -317,10 +320,15 @@ export default function Game3_FriendRoom() {
     const card = TAROT_CARDS[Math.floor(Math.random() * TAROT_CARDS.length)];
     setResultCard(card);
     setShowResult(true);
+
+    // Load friend answers
+    const fAnswers = storage.get(`friend_answers_${shareCode}`) || [];
+    setFriendAnswers(fAnswers);
+
     storage.addDiaryEntry({
       game: '朋友灵魂拷问室',
       question: question,
-      result: `得到塔罗牌「${card.name} ${card.emoji}」——${card.meaning}`,
+      result: `得到塔罗牌「${card.name} ${card.emoji}」——${card.meaning}${fAnswers.length > 0 ? `（已有${fAnswers.length}位朋友回答）` : ''}`,
       type: 'friend-room',
     });
   };
@@ -537,6 +545,46 @@ export default function Game3_FriendRoom() {
                   换个问题
                 </button>
               </div>
+
+              {/* Friend answers */}
+              {friendAnswers.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                  style={{
+                    marginTop: '20px', padding: '16px', borderRadius: '12px',
+                    background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.12)',
+                    textAlign: 'left',
+                  }}>
+                  <p style={{ color: '#60a5fa', fontSize: '13px', letterSpacing: '2px', marginBottom: '12px', textAlign: 'center' }}>
+                    👥 朋友们的回答
+                  </p>
+                  {friendAnswers.map((fa, i) => (
+                    <div key={i} style={{
+                      padding: '10px 12px', borderRadius: '8px',
+                      background: 'rgba(0,0,0,0.2)', marginBottom: '8px',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{
+                          width: '24px', height: '24px', borderRadius: '50%',
+                          background: fa.friendAvatar
+                            ? `linear-gradient(135deg, var(--velvet), var(--gold-dark))`
+                            : 'linear-gradient(135deg, #6B7280, #9CA3AF)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '12px', flexShrink: 0,
+                        }}>
+                          👤
+                        </span>
+                        <span style={{ color: '#e8d48b', fontSize: '13px', fontWeight: 'bold' }}>
+                          {fa.friendDisplay}
+                        </span>
+                      </div>
+                      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', lineHeight: 1.5 }}>
+                        {fa.answerSummary?.slice(0, 120)}{(fa.answerSummary || '').length > 120 ? '...' : ''}
+                      </p>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
 
               <InsightPanel
                 gameType="friend-room"
