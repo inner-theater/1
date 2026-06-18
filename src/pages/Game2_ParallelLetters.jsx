@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { generateFutureLetter } from '../utils/ai';
 import storage from '../utils/storage';
 import InsightPanel from '../components/InsightPanel';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Game2_ParallelLetters() {
   const [step, setStep] = useState('input');
@@ -12,12 +13,16 @@ export default function Game2_ParallelLetters() {
   const [loading, setLoading] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [highlights, setHighlights] = useState({});
+  const { profile } = useAuth();
 
   const generateLetters = async () => {
     if (!optionA.trim() || !optionB.trim()) return;
     setLoading(true);
     try {
-      const results = await generateFutureLetter(optionA, optionB);
+      const results = await generateFutureLetter(optionA, optionB, {
+        nickname: profile?.nickname || '',
+        gender: profile?.gender || '',
+      });
       setLetters(results);
       setStep('letters');
       storage.addDiaryEntry({

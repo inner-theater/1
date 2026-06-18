@@ -3,7 +3,7 @@
 
 const SUPABASE_FUNCTION_URL = 'https://uemvpdbuhzfomfstqias.supabase.co/functions/v1/generate-insight';
 
-export async function generateFutureLetter(optionA, optionB) {
+export async function generateFutureLetter(optionA, optionB, profile = null) {
   const years = [1, 3, 10];
 
   try {
@@ -14,7 +14,7 @@ export async function generateFutureLetter(optionA, optionB) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameType: 'generate-letter',
-            context: { optionA, optionB, year },
+            context: { optionA, optionB, year, profile },
           }),
         });
 
@@ -43,10 +43,23 @@ export async function generateFutureLetter(optionA, optionB) {
 
 // 模拟数据（所有模型都不可用时的兜底）
 function generateMockLetter(year, optionA, optionB) {
+  const theChoice = Math.random() > 0.5 ? (optionA || '这条路') : (optionB || '那条路');
   const letters = {
-    1: `亲爱的你：\n\n一年了。记得当初站在岔路口的你吗？选择「${optionA || optionB || '这条路'}」之后，你发现成长往往藏在最初的不安里。你学会了在压力下微笑，也遇到了让你眼睛发亮的人。现在的你正喝着咖啡晒太阳，那段辗转反侧的时光，不过是成长的前奏。\n\n—— 一年后的你`,
-    3: `三年后的你：\n\n时间是个好东西。你换了城市，做了些勇敢的决定，也有了可以深夜打电话的朋友。最重要的是，你不再那么害怕选错了——因为你知道每条路都有它的风景。当初让你纠结的那个选择，现在回头看不过是人生的一个逗号。\n\n—— 三年后的你`,
-    10: `十年后的你：\n\n你好，我是十年后的你。我想告诉你：谢谢你当初认真做了选择。不是因为它多正确，而是因为你在选择之后一直在认真生活。你去了想去的地方，爱了想爱的人，也放下了该放下的。人生从来没有白走的路。\n\n—— 十年后的你`,
+    1: `诶，想跟你说个事。
+
+选了「${theChoice}」之后那两个月其实挺难的——跟我想的不太一样。但你知道吗，第三个月开始慢慢就对劲了。我没有变成我以为的那种人，但我成了现在这个我觉得还行的自己。
+
+别怕选错。你现在怕的那些事，大部分都没发生。发生的那些，回头一看也不算什么。\n\n—— 来自一年后`,
+    3: `说来好笑。
+
+三年前选的「${theChoice}」，现在回头看，根本不是"选择"本身改变了什么，而是选了之后你逼自己认真过的每一天。我搬了一次家，学会了做饭（虽然还是很难吃），认识了几个可以半夜不回消息也没关系的朋友。
+
+当时你纠结的那个问题，现在已经不是问题了。不是因为解决了，而是你有更大的问题了——但你也有更多办法了。哈哈哈。\n\n—— 来自三年后`,
+    10: `我不叫你"亲爱的你"，太肉麻了。
+
+你选了「${theChoice}」这件事，放在十年这个尺度上看，就跟高中选了理科还是文科一样——它重要，但没你想的那么重要。重要的一直不是选了哪条路，是你在路上变成了什么样的人。
+
+我这十年过得很有意思。去了几个没想过会去的地方，做了几件没想过会做的事，也有无数次后悔和重新来过的时刻。但如果你问我：当初该选另一个吗？我不知道——因为我没走过那条路。我只知道我走的这条路，最后没那么差。\n\n—— 来自十年后`,
   };
   return letters[year] || letters[1];
 }
