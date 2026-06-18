@@ -271,8 +271,9 @@ ${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
       const profileParts: string[] = [];
       if (profile.nickname) profileParts.push(`名字是${profile.nickname}`);
       if (profile.gender) profileParts.push(`是${profile.gender === 'male' ? '男生' : '女生'}`);
+      if (profile.avatarLabel) profileParts.push(`头像选了「${profile.avatarLabel}」风格`);
       if (profileParts.length > 0) {
-        userPrompt += `\n\n关于他本人（自然融入即可，不要刻意提性别或名字——除非真的顺口）：${profileParts.join('，')}。`;
+        userPrompt += `\n\n关于他本人（这是你自己对他的了解，融入语气中即可，绝对不要在回复里直接提这些信息——不要复述他的名字、性别、头像标签）：${profileParts.join('，')}。`;
       }
     }
 
