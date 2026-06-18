@@ -1,10 +1,250 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
 import storage from '../utils/storage';
 import InsightPanel from '../components/InsightPanel';
 import { generateQuestions } from '../utils/ai-insight';
-import { supabase } from '../utils/supabase';
+// 生成复古剧场风分享海报
+async function generatePoster(shareUrl, question, questionCount) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 750;
+  canvas.height = 1334;
+  const ctx = canvas.getContext('2d');
+
+  // 深紫背景
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  bgGrad.addColorStop(0, '#0d0520');
+  bgGrad.addColorStop(0.4, '#1a0a2e');
+  bgGrad.addColorStop(0.7, '#2d1b4e');
+  bgGrad.addColorStop(1, '#0d0520');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 顶部剧场幕布
+  ctx.save();
+  const curtainGrad = ctx.createLinearGradient(0, 0, 0, 280);
+  curtainGrad.addColorStop(0, '#8b0000');
+  curtainGrad.addColorStop(0.5, '#5c0a0a');
+  curtainGrad.addColorStop(1, '#1a0a2e');
+  ctx.fillStyle = curtainGrad;
+  // 左侧幕布
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(340, 0);
+  for (let i = 0; i < 12; i++) {
+    const x = 340 * (i / 12);
+    const y = 240 + Math.sin(i * 0.8) * 40;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(0, 280);
+  ctx.closePath();
+  ctx.fill();
+  // 右侧幕布
+  ctx.beginPath();
+  ctx.moveTo(750, 0);
+  ctx.lineTo(410, 0);
+  for (let i = 12; i >= 0; i--) {
+    const x = 410 + (340 * i / 12);
+    const y = 240 + Math.sin(i * 0.8) * 40;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(750, 280);
+  ctx.closePath();
+  ctx.fill();
+  // 幕布金穗
+  ctx.fillStyle = '#c9a84c';
+  for (let i = 0; i < 30; i++) {
+    const x = 50 + i * 22;
+    const h = 12 + Math.sin(i * 0.5) * 6;
+    ctx.beginPath();
+    ctx.ellipse(x, 275, 8, h, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 装饰金边
+  ctx.strokeStyle = 'rgba(201,168,76,0.5)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60);
+  ctx.strokeStyle = 'rgba(201,168,76,0.25)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(50, 50, canvas.width - 100, canvas.height - 100);
+
+  // 内框装饰
+  ctx.strokeStyle = 'rgba(201,168,76,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(80, 350, canvas.width - 160, canvas.height - 500, 20);
+  ctx.stroke();
+
+  // 标题区背景光晕
+  ctx.save();
+  const glowGrad = ctx.createRadialGradient(375, 420, 20, 375, 420, 300);
+  glowGrad.addColorStop(0, 'rgba(168,85,247,0.15)');
+  glowGrad.addColorStop(1, 'rgba(168,85,247,0)');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(100, 350, 550, 300);
+  ctx.restore();
+
+  // 剧场聚光灯效果
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    const lx = 250 + i * 125;
+    const spotGrad = ctx.createLinearGradient(0, 0, 0, 200);
+    spotGrad.addColorStop(0, 'rgba(255,255,200,0.04)');
+    spotGrad.addColorStop(1, 'rgba(255,255,200,0)');
+    ctx.fillStyle = spotGrad;
+    ctx.beginPath();
+    ctx.moveTo(lx - 80, 300);
+    ctx.lineTo(lx - 2, 500);
+    ctx.lineTo(lx + 2, 500);
+    ctx.lineTo(lx + 80, 300);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 标题
+  ctx.fillStyle = '#e8d48b';
+  ctx.font = 'bold 44px "Noto Serif SC", "SimSun", serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('朋友灵魂拷问室', 375, 420);
+
+  // 副标题
+  ctx.fillStyle = 'rgba(232,212,139,0.5)';
+  ctx.font = '16px "Noto Serif SC", serif';
+  ctx.fillText('一场以朋友之名的内心对话', 375, 460);
+
+  // 分隔线
+  ctx.strokeStyle = 'rgba(201,168,76,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(200, 490);
+  ctx.lineTo(550, 490);
+  ctx.stroke();
+
+  // 用户问题区
+  const maxLineWidth = 500;
+  ctx.fillStyle = '#f5e6d3';
+  ctx.font = '18px "Noto Serif SC", sans-serif';
+  const qLines = wrapText(ctx, `「${question}」`, maxLineWidth);
+  let qY = 540;
+  qLines.forEach((line) => {
+    ctx.fillText(line, 375, qY);
+    qY += 32;
+  });
+
+  // 描述文字
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = '15px sans-serif';
+  ctx.fillText(`邀请你来回答 ${questionCount} 道灵魂拷问`, 375, qY + 24);
+  ctx.fillText('借你的视角，照见我没看见的自己', 375, qY + 52);
+
+  // 装饰花纹 - 左侧
+  drawOrnament(ctx, 160, qY + 100, 'left');
+  // 右侧
+  drawOrnament(ctx, 590, qY + 100, 'right');
+
+  // QR 码区域
+  const qrSize = 200;
+  const qrX = 375 - qrSize / 2;
+  const qrY = qY + 130;
+
+  // 生成 QR 码（data URL）
+  const qrDataUrl = await QRCode.toDataURL(shareUrl, {
+    width: qrSize,
+    margin: 2,
+    color: { dark: '#1a0a2e', light: '#f5e6d3' },
+  });
+
+  // QR 背景卡片
+  ctx.fillStyle = 'rgba(245,230,211,0.95)';
+  ctx.beginPath();
+  ctx.roundRect(qrX - 16, qrY - 16, qrSize + 32, qrSize + 32, 16);
+  ctx.fill();
+
+  // 绘制 QR 码
+  const qrImg = await loadImage(qrDataUrl);
+  ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+  // 扫码提示
+  ctx.fillStyle = '#333';
+  ctx.font = '14px sans-serif';
+  ctx.fillText('扫码帮我回答', 375, qrY + qrSize + 36);
+
+  // 底部品牌区
+  const footerY = canvas.height - 120;
+  ctx.strokeStyle = 'rgba(201,168,76,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(150, footerY);
+  ctx.lineTo(600, footerY);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(232,212,139,0.6)';
+  ctx.font = '18px "Noto Serif SC", serif';
+  ctx.fillText('内心剧场 · 你的秘密决策练习场', 375, footerY + 40);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('扫码或分享链接，邀请朋友走进你的内心剧场', 375, footerY + 68);
+
+  return canvas.toDataURL('image/png');
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+  });
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const lines = [];
+  let current = '';
+  for (const ch of text) {
+    const test = current + ch;
+    if (ctx.measureText(test).width > maxWidth && current.length > 0) {
+      lines.push(current);
+      current = ch;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function drawOrnament(ctx, x, y, side) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(201,168,76,0.35)';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = 'rgba(201,168,76,0.1)';
+
+  // 菱形花纹
+  ctx.beginPath();
+  const dir = side === 'left' ? -1 : 1;
+  ctx.moveTo(x, y - 16);
+  ctx.lineTo(x + dir * 20, y);
+  ctx.lineTo(x, y + 16);
+  ctx.lineTo(x - dir * 20, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 两侧小点
+  ctx.fillStyle = 'rgba(201,168,76,0.4)';
+  ctx.beginPath();
+  ctx.arc(x + dir * 35, y, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x - dir * 35, y, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 
 export default function Game3_FriendRoom() {
   const [step, setStep] = useState('input');
@@ -13,47 +253,57 @@ export default function Game3_FriendRoom() {
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
-  const [qrDataUrl, setQrDataUrl] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [resultCard, setResultCard] = useState(null);
-  const [posterImage, setPosterImage] = useState(null);
-  const posterRef = useRef(null);
+  const [posterUrl, setPosterUrl] = useState(null);
+  const [generatingPoster, setGeneratingPoster] = useState(false);
 
   const generateAIQuestions = async () => {
     if (!question.trim()) return;
     setLoading(true);
+    const currentQ = question.trim();
     try {
-      const qs = await generateQuestions(question);
+      const qs = await generateQuestions(currentQ);
       if (qs && qs.length >= 5) {
-        setQuestions(qs.slice(0, 10).map((q, i) => ({
+        const formatted = qs.slice(0, 10).map((q, i) => ({
           ...q,
           id: i,
           options: Array.isArray(q.options) ? q.options.map((o, j) => ({
             label: String.fromCharCode(65 + j), text: o.replace(/^[A-D][.、]\s*/, ''),
           })) : [],
-        })));
+        }));
+        setQuestions(formatted);
+        // 预创建分享链接
+        const code = storage.createShareLink('friend-room', { question: currentQ, questions: formatted });
+        setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
         setStep('sharing');
-        generateQR();
       } else {
-        // fallback: use built-in questions
-        setQuestions(getDefaultQuestions(question));
+        const fallbackQs = getDefaultQuestions(currentQ);
+        setQuestions(fallbackQs);
+        const code = storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
+        setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
         setStep('sharing');
-        generateQR();
       }
     } catch {
-      setQuestions(getDefaultQuestions(question));
+      const fallbackQs = getDefaultQuestions(currentQ);
+      setQuestions(fallbackQs);
+      const code = storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
+      setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
       setStep('sharing');
-      generateQR();
     }
     setLoading(false);
   };
 
-  const generateQR = () => {
-    const code = storage.createShareLink('friend-room', { question, questions });
-    const url = `https://inner-theater.github.io/1/#/answer/${code}`;
-    setShareUrl(url);
-    QRCode.toDataURL(url, { width: 200, margin: 1, color: { dark: '#1a0a2e', light: '#ffffff' } })
-      .then(setQrDataUrl);
+  const handleGeneratePoster = async () => {
+    if (generatingPoster) return;
+    setGeneratingPoster(true);
+    try {
+      const url = await generatePoster(shareUrl, question, questions.length);
+      setPosterUrl(url);
+    } catch {
+      // fallback: just copy link
+    }
+    setGeneratingPoster(false);
   };
 
   const handleAnswer = (qId, option) => {
@@ -75,8 +325,6 @@ export default function Game3_FriendRoom() {
   const answeredCount = Object.keys(answers).length;
   const allAnswered = questions.length > 0 && answeredCount === questions.length;
 
-  const cardEmojis = ['🃏', '🔮', '✨', '🌟', '💫'];
-
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '40px 24px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -95,7 +343,7 @@ export default function Game3_FriendRoom() {
             <motion.div key="input" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
               style={{ background: 'rgba(35,20,56,0.8)', borderRadius: '16px', padding: '32px', border: '1px solid rgba(201,168,76,0.2)' }}>
               <label style={{ color: '#e8d48b', fontSize: '14px', letterSpacing: '2px', marginBottom: '12px', display: 'block' }}>
-                告诉我你的烦恼，AI 帮你设计拷问题目
+                写下你的烦恼，生成专属灵魂拷问
               </label>
               <textarea value={question} onChange={(e) => setQuestion(e.target.value)}
                 placeholder="比如：我该不该接受这份外地的工作offer？" rows={4}
@@ -113,31 +361,104 @@ export default function Game3_FriendRoom() {
 
           {step === 'sharing' && (
             <motion.div key="sharing" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              {/* Share poster */}
-              <div ref={posterRef} style={{
-                background: 'linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%)',
-                borderRadius: '20px', padding: '32px', border: '2px solid rgba(201,168,76,0.3)',
-                textAlign: 'center', position: 'relative',
+              {/* 分享预览卡片 */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(26,10,46,0.95) 0%, rgba(45,27,78,0.9) 50%, rgba(26,10,46,0.95) 100%)',
+                borderRadius: '20px', padding: '32px', border: '2px solid rgba(201,168,76,0.25)',
+                textAlign: 'center', position: 'relative', overflow: 'hidden',
               }}>
+                {/* 装饰花纹 */}
+                <div style={{ position: 'absolute', top: 8, left: 16, color: 'rgba(201,168,76,0.15)', fontSize: '24px' }}>✦</div>
+                <div style={{ position: 'absolute', top: 8, right: 16, color: 'rgba(201,168,76,0.15)', fontSize: '24px' }}>✦</div>
+                <div style={{ position: 'absolute', bottom: 8, left: 16, color: 'rgba(201,168,76,0.15)', fontSize: '24px' }}>✦</div>
+                <div style={{ position: 'absolute', bottom: 8, right: 16, color: 'rgba(201,168,76,0.15)', fontSize: '24px' }}>✦</div>
+
                 <div style={{ fontSize: '40px', marginBottom: '8px' }}>🔮</div>
-                <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-display)', color: '#e8d48b', letterSpacing: '3px', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '20px', fontFamily: 'var(--font-display)', color: '#e8d48b', letterSpacing: '3px', marginBottom: '16px' }}>
                   朋友灵魂拷问室
                 </h3>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', lineHeight: 1.6, marginBottom: '20px' }}>
-                  我正纠结：「{question}」<br />帮我回答{questions.length}道拷问，让我从你的视角看见自己
-                </p>
-                {qrDataUrl && (
-                  <div style={{
-                    display: 'inline-block', padding: '12px', background: '#fff', borderRadius: '12px',
+
+                {/* 问题预览 */}
+                <div style={{
+                  background: 'rgba(0,0,0,0.25)', borderRadius: '12px', padding: '20px', marginBottom: '20px',
+                  border: '1px solid rgba(201,168,76,0.15)',
+                }}>
+                  <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', letterSpacing: '2px', marginBottom: '8px' }}>
+                    你的烦恼
+                  </p>
+                  <p style={{ color: '#f5e6d3', fontSize: '16px', lineHeight: 1.6, fontStyle: 'italic' }}>
+                    「{question}」
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px', marginTop: '12px' }}>
+                    已为你准备了 <strong style={{ color: '#e8d48b' }}>{questions.length}</strong> 道灵魂拷问
+                  </p>
+                </div>
+
+                {/* 分享按钮 */}
+                <button onClick={handleGeneratePoster} disabled={generatingPoster}
+                  style={{
+                    width: '100%', padding: '16px', borderRadius: '12px',
+                    background: generatingPoster ? 'rgba(168,85,247,0.2)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    color: '#fff', fontSize: '16px', fontWeight: 'bold', letterSpacing: '3px',
+                    border: 'none', cursor: generatingPoster ? 'wait' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   }}>
-                    <img src={qrDataUrl} alt="QR" style={{ width: '160px', height: '160px', display: 'block' }} />
-                    <p style={{ color: '#333', fontSize: '11px', marginTop: '6px' }}>扫码帮我回答</p>
-                  </div>
-                )}
-                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '16px', wordBreak: 'break-all' }}>
-                  或复制链接：{shareUrl}
+                  <span>{generatingPoster ? '⏳ 正在生成海报...' : '📤 分享给朋友'}</span>
+                </button>
+                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginTop: '12px' }}>
+                  生成一张复古剧场风海报，朋友扫码即可作答
                 </p>
               </div>
+
+              {/* 海报预览弹窗 */}
+              <AnimatePresence>
+                {posterUrl && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setPosterUrl(null)}
+                    style={{
+                      position: 'fixed', inset: 0, zIndex: 9999,
+                      background: 'rgba(0,0,0,0.85)', display: 'flex',
+                      flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      padding: '20px',
+                    }}>
+                    <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ maxWidth: '360px', width: '100%', maxHeight: '85vh', overflow: 'auto', borderRadius: '12px' }}>
+                      <img src={posterUrl} alt="分享海报" style={{ width: '100%', height: 'auto', borderRadius: '12px' }} />
+                    </motion.div>
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <button onClick={() => {
+                        const a = document.createElement('a');
+                        a.href = posterUrl;
+                        a.download = '朋友灵魂拷问室海报.png';
+                        a.click();
+                      }}
+                        style={{ padding: '12px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #c9a84c, #e8d48b)', color: '#1a0a2e', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', letterSpacing: '2px' }}>
+                        💾 保存海报
+                      </button>
+                      <button onClick={async () => {
+                        try {
+                          const blob = await (await fetch(posterUrl)).blob();
+                          await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob }),
+                          ]);
+                          alert('海报已复制到剪贴板，可直接粘贴发送');
+                        } catch {
+                          await navigator.clipboard.writeText(shareUrl);
+                          alert('已复制分享链接');
+                        }
+                      }}
+                        style={{ padding: '12px 28px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: '14px', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', letterSpacing: '2px' }}>
+                        📋 复制海报
+                      </button>
+                      <button onClick={() => setPosterUrl(null)}
+                        style={{ padding: '12px 28px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontSize: '14px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
+                        关闭
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div style={{ marginTop: '32px' }}>
                 <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginBottom: '20px' }}>
