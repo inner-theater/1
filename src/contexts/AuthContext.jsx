@@ -1,26 +1,43 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
+import { getProfile, upsertProfile } from '../utils/profile';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load profile whenever user changes
+  const loadProfile = useCallback(async (userId) => {
+    if (!userId) { setProfile(null); return; }
+    const p = await getProfile(userId);
+    setProfile(p);
+  }, []);
+
   useEffect(() => {
-    // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) loadProfile(u.id);
+      else setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) loadProfile(u.id);
+      else { setProfile(null); }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadProfile]);
+
+  // Once profile is loaded (or determined null), stop loading
+  useEffect(() => {
+    if (user === null || profile !== undefined) setLoading(false);
+  }, [user, profile]);
 
   const signUp = async (email, password) => {
     const { data, error } = await supabase.auth.signUp({ email, password });
@@ -36,10 +53,20 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
   };
 
+  const updateProfile = async (data) => {
+    if (!user) return;
+    const updated = await upsertProfile(user.id, data);
+    setProfile(updated);
+    return updated;
+  };
+
+  const isNewUser = user && !profile?.nickname;
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, isNewUser, loadProfile }}>
       {children}
     </AuthContext.Provider>
   );

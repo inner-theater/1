@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import storage from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
+import { maskEmail, getProfile } from '../utils/profile';
 
 export default function AnswerPage() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [data, setData] = useState(null);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -17,22 +18,63 @@ export default function AnswerPage() {
     const d = storage.getShareData(code);
     if (!d) { navigate('/'); return; }
     setData(d);
-    if (user) setFriendName(user.email?.split('@')[0] || '');
-  }, [code]);
+
+    // Auto-fill friend name from profile or email
+    if (profile?.nickname) {
+      setFriendName(profile.nickname);
+    } else if (user?.email) {
+      setFriendName(maskEmail(user.email));
+    }
+  }, [code, user, profile]);
 
   const handleAnswer = (qId, option) => {
     setAnswers({ ...answers, [qId]: option });
   };
 
-  const submitAnswers = () => {
+  const submitAnswers = async () => {
     if (!data) return;
+
+    // Build friend info
+    let friendDisplay = '匿名朋友';
+    let friendAvatar = '';
+    let friendNickname = '';
+
+    if (profile?.nickname) {
+      friendDisplay = profile.nickname;
+      friendNickname = profile.nickname;
+      friendAvatar = profile.avatar || '';
+    } else if (user?.email) {
+      friendDisplay = maskEmail(user.email);
+    } else if (friendName.trim()) {
+      friendDisplay = friendName.trim();
+    }
+
+    // Build answer summary
+    const answerSummary = data.data.questions.slice(0, 10).map((q, i) => {
+      const chosen = answers[q.id] || '';
+      const optText = (q.options || []).find(o => o.label === chosen)?.text || chosen || '未选';
+      return `${q.q.slice(0, 20)}... → ${optText}`;
+    }).join('; ');
+
+    // Store friend answer in localStorage under share code
+    const friendAnswers = storage.get(`friend_answers_${code}`) || [];
+    friendAnswers.push({
+      friendDisplay,
+      friendNickname,
+      friendAvatar: friendAvatar || '',
+      answerSummary,
+      timestamp: new Date().toISOString(),
+    });
+    storage.set(`friend_answers_${code}`, friendAnswers);
+
+    // Also add to friend's own diary so they have a record
     storage.addDiaryEntry({
       game: '朋友灵魂拷问室',
-      question: data.data.question,
-      result: `朋友「${friendName || '匿名'}」的回答：${data.data.questions.length}道题已完成`,
+      question: `帮朋友回答了：「${data.data.question.slice(0, 30)}...」`,
+      result: `回答了${data.data.questions.length}道题`,
       type: 'friend-room',
-      friend: friendName || '匿名朋友',
     });
+
     setSubmitted(true);
   };
 
@@ -58,7 +100,7 @@ export default function AnswerPage() {
 
         {!submitted ? (
           <>
-            {!user ? (
+            {!user && (
               <div style={{
                 textAlign: 'center', padding: '24px', borderRadius: '12px',
                 background: 'rgba(35,20,56,0.6)', border: '1px dashed rgba(201,168,76,0.2)', marginBottom: '20px',
@@ -70,10 +112,6 @@ export default function AnswerPage() {
                   placeholder="输入你的名字"
                   style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid rgba(201,168,76,0.3)', background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: '13px', outline: 'none', textAlign: 'center' }} />
               </div>
-            ) : (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '12px', marginBottom: '16px' }}>
-                回答将以「{friendName}」的名义记录
-              </p>
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
