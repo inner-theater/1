@@ -10,6 +10,7 @@ export default function Game2_ParallelLetters() {
   const [optionA, setOptionA] = useState('');
   const [optionB, setOptionB] = useState('');
   const [letters, setLetters] = useState(null);
+  const [letterMeta, setLetterMeta] = useState(null); // { chosen, other }
   const [loading, setLoading] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [highlights, setHighlights] = useState({});
@@ -19,16 +20,19 @@ export default function Game2_ParallelLetters() {
     if (!optionA.trim() || !optionB.trim()) return;
     setLoading(true);
     try {
-      const results = await generateFutureLetter(optionA, optionB, {
+      const { letters: letterList, chosen, other } = await generateFutureLetter(optionA, optionB, {
         nickname: profile?.nickname || '',
         gender: profile?.gender || '',
       });
-      setLetters(results);
+      setLetters(letterList);
+      setLetterMeta({ chosen, other });
       setStep('letters');
       storage.addDiaryEntry({
         game: '平行时空来信',
         optionA,
         optionB,
+        chosen,
+        other,
         type: 'parallel-letters',
       });
     } catch (e) {
@@ -296,7 +300,7 @@ export default function Game2_ParallelLetters() {
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '24px' }}>
                 <button
-                  onClick={() => { setStep('input'); setLetters(null); setSelectedLetter(null); setHighlights({}); }}
+                  onClick={() => { setStep('input'); setLetters(null); setLetterMeta(null); setSelectedLetter(null); setHighlights({}); }}
                   style={{
                     padding: '12px 28px',
                     borderRadius: '10px',
@@ -315,6 +319,8 @@ export default function Game2_ParallelLetters() {
                   context={{
                     optionA,
                     optionB,
+                    chosen: letterMeta?.chosen || '',
+                    other: letterMeta?.other || '',
                     highlights: Object.keys(highlights || {}).join('、'),
                   }}
                 />

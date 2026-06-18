@@ -165,7 +165,19 @@ serve(async (req) => {
         break;
       }
       case 'parallel-letters': {
-        userPrompt = `用户玩"平行时空来信"——读了两封未来的信，在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。最能触动他的句子：${context.highlights || '无'}。打动他的那个瞬间，就是他内心缺口的位置。引用原文中触动他的句子，展开分析——为什么偏偏是这几句？读出他没说出口的渴望和恐惧。深情、有文学感、500字以上。不要分点，不要标题，就是聊天。`;
+        const chosen = context.chosen || '其中一条路';
+        const other = context.other || '另一条路';
+        userPrompt = `用户玩"平行时空来信"——读了三封来自未来的信（1年后、3年后、10年后）。但有个关键设计：这三封信写的都是同一条路的未来，不是A和B各一封信。用户在读的时候完全不知道这是哪条路，纯粹凭文字感受。
+
+揭晓：这三封信来自「${chosen}」的未来。他没读到的另一条路是「${other}」。
+
+他纠结的是「${context.optionA || ''}」和「${context.optionB || ''}」。最能触动他的句子：${context.highlights || '无'}。
+
+请像老朋友揭晓谜底：
+1. 先告诉他这个盲测设计——他读的三封信都是「${chosen}」的未来，他完全是凭直觉感受了这条路的生活。
+2. 分析他标记的触动句子——在不知道是哪条路的情况下，这些句子纯粹反映了他对某种生活方式的真实渴望（不是被选项名字影响的）。为什么偏偏是这几句？读出他没说出口的渴望和恐惧。
+3. 盲测的意义：去掉名字标签后，他的直觉更诚实。理性上的"A更好"或"B更安稳"可能都是标签，但文字里的生活质感才是真的。
+4. 500字以上，不要分点，不要标题，就是聊天。`;
         break;
       }
       case 'friend-room': {
@@ -189,7 +201,8 @@ serve(async (req) => {
         maxTokens = 3000;
         const optA = context.optionA || '';
         const optB = context.optionB || '';
-        const chosen = Math.random() > 0.5 ? optA : optB;
+        // 三封信共用同一个 chosen（盲测设计：用户不知道读的是哪条路）
+        const chosen = context.chosen || (Math.random() > 0.5 ? optA : optB);
         const other = chosen === optA ? optB : optA;
         const letterProfile = context.profile;
         const nameCall = letterProfile?.nickname ? `他叫${letterProfile.nickname}` : '';
