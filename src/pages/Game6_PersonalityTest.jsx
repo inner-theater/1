@@ -113,46 +113,75 @@ function fallbackAnalysis(scores) {
     .map(([k, v]) => ({ dim: k, score: v, ...DIM_LABELS[k] }))
     .sort((a, b) => b.score - a.score);
 
-  const top = sorted[0], second = sorted[1], bottom = sorted[4];
+  const top = sorted[0], second = sorted[1], third = sorted[2], fourth = sorted[3], bottom = sorted[4];
   const typeName = getPersonalityType(sorted);
 
   let a = `${typeName}\n\n`;
-  a += `在你的五维人格画像中，${top.emoji}「${top.name}」最为突出——${top.score}/10。这意味着${getDimDeepDesc(top.dim, top.score)}\n\n`;
-  a += `紧随其后的是${second.emoji}「${second.name}」（${second.score}/10）。${getDimDeepDesc(second.dim, second.score)}\n\n`;
-  a += `相对低调的是${bottom.emoji}「${bottom.name}」（${bottom.score}/10）。${getLowDesc(bottom.dim, bottom.score)}\n\n`;
 
-  // 综合描述
+  // 一、总览
+  a += `📊 你的五维画像总览\n\n`;
+  a += `这是你的五维人格光谱，从最强到最弱依次为：\n`;
+  a += `「${top.name}」${top.score}分 → 「${second.name}」${second.score}分 → 「${third.name}」${third.score}分 → 「${fourth.name}」${fourth.score}分 → 「${bottom.name}」${bottom.score}分\n\n`;
+  a += `这意味着你的核心驱动力来自${top.name}，而${bottom.name}则是你相对松弛的区域。\n\n`;
+
+  // 二、核心维度深度解析
+  a += `🎯 核心维度深度解析\n\n`;
+  a += `【${top.emoji} ${top.name} —— 你的最强维度（${top.score}分）】\n${getDimDeepDesc(top.dim, top.score)}\n`;
+  a += `在生活场景中，这表现为：${getLifeManifest(top.dim, top.score)}\n\n`;
+
+  a += `【${second.emoji} ${second.name} —— 你的第二维度（${second.score}分）】\n${getDimDeepDesc(second.dim, second.score)}\n`;
+  a += `它如何影响你：${getLifeManifest(second.dim, second.score)}\n\n`;
+
+  a += `【${bottom.emoji} ${bottom.name} —— 你的待开发领域（${bottom.score}分）】\n${getLowDesc(bottom.dim, bottom.score)}\n`;
+  a += `对你来说可能意味着：${getChallengeArea(bottom.dim, bottom.score)}\n\n`;
+
+  // 三、双维度组合分析
+  a += `🔗 特质组合透视\n\n`;
   const combo = `${top.dim}_${second.dim}`;
-  if (combo === 'openness_extraversion' || combo === 'extraversion_openness') {
-    a += '你像一阵自由的风——对世界充满好奇，也不怕被人看到。创作、旅行、与人碰撞出新想法，这些是你最自然的呼吸方式。但偶尔也需要港湾：一个能让你停下来消化这一切的人或地方。';
-  } else if (combo.includes('conscientiousness') && combo.includes('agreeableness')) {
-    a += '你是那种让人安心的存在——靠谱、有规划、也为别人着想。团队里你可能是最早到最晚走的那个人。但要记得，对自己好一点：你不是超人，偶尔也可以让别人来照顾你。';
-  } else if (combo.includes('openness') && combo.includes('neuroticism')) {
-    a += '你的内心世界丰富得像一座美术馆——但有些展厅你不太敢自己进去。敏感是一把双刃剑：它让你看到别人忽略的美，也让你感受到别人不在意的痛。创作可能是你最好的出口。';
-  } else {
-    a += '你的人格画像有一个独特之处——看似矛盾的两种特质在你身上和谐共存。这本身就是一种礼物：你能理解两边的人，能从不同角度看世界。别急着给自己贴标签，模糊地带往往是最精彩的部分。';
-  }
+  const comboDesc = getComboDesc(combo, sorted);
+  a += `${comboDesc}\n\n`;
 
-  a += `\n\n${top.emoji}${top.name} ${top.score}/10 · ${sorted[1].emoji}${sorted[1].name} ${sorted[1].score}/10 · ${sorted[2].emoji}${sorted[2].name} ${sorted[2].score}/10 · ${sorted[3].emoji}${sorted[3].name} ${sorted[3].score}/10 · ${bottom.emoji}${bottom.name} ${bottom.score}/10`;
+  // 四、人际与职业洞察
+  a += `👥 人际与职业洞察\n\n`;
+  a += `在人际关系中：${getRelationshipInsight(sorted)}\n\n`;
+  a += `适合你的环境：${getWorkEnv(sorted)}\n\n`;
+
+  // 五、成长建议
+  a += `🌱 成长建议\n\n`;
+  a += `发挥优势：${getStrengthAdvice(top, second)}\n\n`;
+  a += `补足短板：${getGrowthAdvice(bottom, fourth)}\n\n`;
+
+  // 六、总结
+  a += `💡 总结\n\n`;
+  a += `${getSummary(sorted)}\n\n`;
+
+  // 七、数据
+  a += `📈 你的五维数据\n`;
+  a += `${top.emoji}${top.name} ${top.score}/10 · ${second.emoji}${second.name} ${second.score}/10 · ${third.emoji}${third.name} ${third.score}/10 · ${fourth.emoji}${fourth.name} ${fourth.score}/10 · ${bottom.emoji}${bottom.name} ${bottom.score}/10\n\n`;
+  a += `记住：人格是流动的河流，不是凝固的雕像。了解自己，是为了更自由地生活。`;
+
   return a;
 }
 
 function getPersonalityType(sorted) {
   const top = sorted[0], second = sorted[1];
   const types = {
-    openness_extraversion: '🌍 探索者型',
-    openness_agreeableness: '🎨 人文创意型',
-    openness_conscientiousness: '🏗️ 理想实践型',
-    conscientiousness_extraversion: '🚀 高效领袖型',
-    conscientiousness_agreeableness: '🛡️ 可靠守护型',
-    conscientiousness_neuroticism: '🧠 完美主义型',
-    extraversion_agreeableness: '🎉 社交温暖型',
-    extraversion_neuroticism: '⚡ 感性表达型',
-    agreeableness_neuroticism: '💧 共情敏感型',
-    openness_neuroticism: '🌙 敏感创造型',
+    openness_extraversion: '探索者型',
+    openness_agreeableness: '人文创意型',
+    openness_conscientiousness: '理想实践型',
+    conscientiousness_extraversion: '高效领袖型',
+    conscientiousness_agreeableness: '可靠守护型',
+    conscientiousness_neuroticism: '完美主义型',
+    extraversion_agreeableness: '社交温暖型',
+    extraversion_neuroticism: '感性表达型',
+    agreeableness_neuroticism: '共情敏感型',
+    openness_neuroticism: '敏感创造型',
   };
   const key = `${top.dim}_${second.dim}`;
-  return types[key] || types[`${second.dim}_${top.dim}`] || '✨ 独特人格型';
+  const emojis = { openness:'🌍', conscientiousness:'🛡️', extraversion:'🚀', agreeableness:'🎨', neuroticism:'🧠' };
+  const e1 = emojis[top.dim] || '✨', e2 = emojis[second.dim] || '✨';
+  const name = types[key] || types[`${second.dim}_${top.dim}`] || '独特组合型';
+  return `${e1} ${name} ${e2}`;
 }
 
 function getDimDeepDesc(dim, score) {
@@ -187,7 +216,87 @@ function getLowDesc(dim, score) {
     };
     return low[dim] || '这是你性格中独特的一面。';
   }
-  return `这是一个中等偏低的得分——你在这方面的特质相对内敛，但不会影响你的整体人格。`;
+  return `这是一个中等偏低的得分——你在这方面的特质相对内敛，但不会影响你的整体人格格局。`;
+}
+
+function getLifeManifest(dim, score) {
+  const m = {
+    openness: score >= 8 ? '你会是那个看了展览回来兴奋地分享的人，周末突然决定去一个没听过的小镇。你的生活里永远有"接下来试试什么"的期待。' : '你对新事物有选择性——挑自己真正感兴趣的领域深入。这是一种成熟的开放。',
+    conscientiousness: score >= 8 ? '你的桌面整洁，开会前5分钟就在会议室准备好了。朋友遇事第一个想起你——因为他们知道你会认真对待。' : '你不会被计划打乱节奏而暴躁，你的弹性让你适应变化比高度自律的人更快。',
+    extraversion: score >= 8 ? '周末不出门等于没过周末。你能在一个下午赶三个局而且越聊越兴奋。社交是你生活的重要跑道。' : '你不需要靠人多来确认存在感。安静的书店、一个人的咖啡——这些是你的充电桩。',
+    agreeableness: score >= 8 ? '同事忘带午饭你会分一半，朋友半夜心情不好你秒回。你的共情力让你成为别人"想说心里话第一个想到的人"。' : '你不会为了维持表面的和谐而委屈自己。这在需要保护能量的时候特别有力量。',
+    neuroticism: score >= 8 ? '你像一台高敏感的天气雷达——别人还没察觉的情绪变化你已经在处理了。这让你在艺术、创作、人事洞察方面有不可替代的敏锐。' : '你是这艘船上的压舱石。风暴时周围人不由自主看向你——因为你的稳定让人安心。',
+  };
+  return m[dim] || '这是你在日常中最自然的状态。';
+}
+
+function getChallengeArea(dim, score) {
+  const c = {
+    openness: '你习惯了熟悉和可预测的节奏。但在不确定的时代，偶尔跳出舒适区可能会有意外收获——哪怕只是换一条上班的路。',
+    conscientiousness: '自由对你来说比秩序更重要。如果在重要的事上容易拖延，试试"只做5分钟"——最难的是开始。',
+    extraversion: '独处是你的根基而非逃避。偶尔拉一个信任的人出来走走，不是为了社交，是为了听到不一样的声音。',
+    agreeableness: '你擅长说"不"，知道边界在哪。偶尔柔软一次，给对方一个意料之外的善意，可能会收获一段没想到的关系。',
+    neuroticism: '你太稳定了，可能不太理解别人的情绪波动。尝试感受一下身边人的脆弱——不是为了改变他们，是为了走进他们。',
+  };
+  return c[dim] || '保持现在这样就很不错。';
+}
+
+function getComboDesc(combo, sorted) {
+  const top = sorted[0], second = sorted[1];
+  const map = {
+    openness_extraversion: '既好奇又敢表达。你对世界抱着探索的心态，也乐于把发现的乐趣传递出去。你身边有一批被你带动的人——你可能没意识到自己是天然的创作者。',
+    openness_agreeableness: '你的好奇心和同理心形成独特配合：你不是在"观察"世界，而是在"感受"世界。这种特质让你在需要深度共情的领域特别出色。',
+    openness_conscientiousness: '你既有创新精神又有执行力——非常罕见的组合。你最擅长把还在胚胎里的概念稳稳孵出来。不过别对自己太苛刻，不是每个想法都必须实现。',
+    conscientiousness_extraversion: '你能站出来扛事——既有计划性又有表达力。在团队里你可能是自然的核心，不是因为你说了算，而是因为你说得清、做得到。',
+    conscientiousness_agreeableness: '你是身边人的"定心丸"。你不声不响把事做得妥妥帖帖，还替别人多想一步。也把这份用心用在自己身上。',
+    conscientiousness_neuroticism: '高标准配一颗敏感的心——完美主义的经典配方。你对自己很严格，也容易因小波动而自我怀疑。做到80分的你在别人眼里已经是95分了。',
+    extraversion_agreeableness: '天生的人际连接者。你能在人群中自然发光，也真心在乎每个人。只是要警惕：照顾所有人的感受会让你忘了自己。',
+    extraversion_neuroticism: '你的情绪像冲浪——能体验到极高的兴奋也容易受情绪拉扯。这是艺术家的灵魂配置：你体验世界的深度别人无法企及。',
+    openness_neuroticism: '内心世界精彩又复杂——能同时看到六层想象和六层恐惧。独处是你能量的来源。找到一种方式把这些感受表达出来：这是最好的自我调节。',
+    agreeableness_neuroticism: '高度共情——别人的忧愁你感同身受，自己的情绪也被外界牵动。这让你成为"特别懂我"的人。但要记得定期拧干自己。',
+  };
+  for (const key of Object.keys(map)) {
+    const parts = key.split('_');
+    if (combo.includes(parts[0]) && combo.includes(parts[1])) return map[key];
+  }
+  return `你的「${top.name}」和「${second.name}」形成了一种独特组合。不要试图成为别人，你已经很好了。`;
+}
+
+function getRelationshipInsight(sorted) {
+  const e = sorted.find(s => s.dim === 'extraversion');
+  const a = sorted.find(s => s.dim === 'agreeableness');
+  const n = sorted.find(s => s.dim === 'neuroticism');
+  let r = '';
+  if (e && e.score >= 7) r += '你喜欢与人相处的过程本身。你是主动联系人的人。注意别把社交当义务——偶尔沉默不会让关系变弱。';
+  else r += '你对关系有选择性而非数量的追求。少量深度连接比大规模社交对你更有价值。你珍视那种"不用社交"的关系。';
+  if (a && a.score >= 7) r += ' 你在关系中更擅长倾听而非表达需求。好关系是双向的——偶尔"麻烦"别人不是负担，反而让对方有机会靠近你。';
+  if (n && n.score >= 7) r += ' 你在关系中敏感度很高——容易捕捉到对方微妙的情绪变化。这是天赋，但也让你容易在关系中消耗自己。';
+  return r;
+}
+
+function getWorkEnv(sorted) {
+  const top = sorted[0];
+  const envs = {
+    openness: '需要创意和新鲜感的领域——设计、内容创作、研发。重复性的工作会消耗你。',
+    conscientiousness: '结构化、有清晰目标和反馈的环境——管理、工程、财务。你会在有掌控感的系统里如鱼得水。',
+    extraversion: '与人频繁互动的工作——销售、教育、客户关系。独狼式的工作会让你枯竭。',
+    agreeableness: '以人为核心的工作——咨询、医疗护理、社会工作。帮别人成长给你最大的满足感。',
+    neuroticism: '需要深度思考和感知的环境——写作、艺术、研究、策略。你比别人能看到更深层的问题。',
+  };
+  return envs[top.dim] || '一个能发挥你核心优势的环境——既不过度消耗你较弱的一面，也不浪费你最强的一面。';
+}
+
+function getStrengthAdvice(top, second) {
+  return `有意识地使用「${top.name}」作为核心引擎。同时用「${second.name}」辅助——它能帮你把优势落地或传播。不要试图变得"均衡"——你最大的价值就在于你的不对称优势。`;
+}
+
+function getGrowthAdvice(bottom, fourth) {
+  return `对于「${bottom.name}」这个相对较弱的维度，目标是"不拖后腿"而非"超越自己"。可以在安全环境做小的低风险尝试。同样，「${fourth.name}」虽排倒数第二，也在你的整体人格里扮演了意想不到的平衡角色。`;
+}
+
+function getSummary(sorted) {
+  const top = sorted[0], bottom = sorted[4];
+  return `你不是可以被简单定义的人。但这张画像至少让你看清了自己轮廓：最强的是${top.name}，这是你的超级武器；最容易忽视的是${bottom.name}，这不是缺陷，只是暗区。最高级的人格状态不是"完美平衡"，而是"知道自己的形状"。今天的你已经比很多人更了解自己了——这值得开心。`;
 }
 
 // Canvas 人格卡片
