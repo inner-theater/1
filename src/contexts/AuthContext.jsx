@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
     return updated;
   };
 
-  const isNewUser = user && !profile?.nickname;
+  const isNewUser = !loading && user && !profile;
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, updateProfile, isNewUser, loadProfile }}>

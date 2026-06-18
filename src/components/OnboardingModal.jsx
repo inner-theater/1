@@ -10,6 +10,7 @@ export default function OnboardingModal({ visible, onClose }) {
   const [avatar, setAvatar] = useState('');
   const [nickname, setNickname] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;
@@ -137,9 +138,17 @@ export default function OnboardingModal({ visible, onClose }) {
                 <input
                   type="text"
                   value={nickname}
-                  onChange={(e) => setNickname(e.target.value.slice(0, 5))}
+                  onChange={(e) => {
+                    if (!isComposing) setNickname(e.target.value.slice(0, 5));
+                    else setNickname(e.target.value);
+                  }}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={(e) => {
+                    setIsComposing(false);
+                    setNickname(e.target.value.slice(0, 5));
+                  }}
                   placeholder="输入你的昵称"
-                  maxLength={5}
+                  maxLength={10}
                   autoFocus
                   style={{
                     width: '100%', padding: '14px 16px', borderRadius: '10px',

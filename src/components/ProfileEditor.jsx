@@ -5,10 +5,11 @@ import AvatarSelector from './AvatarSelector';
 
 export default function ProfileEditor({ visible, onClose }) {
   const { user, profile, updateProfile } = useAuth();
-  const [gender, setGender] = useState(profile?.gender || '');
+  const [gender, setGender] = useState(profile?.gender || 'male');
   const [avatar, setAvatar] = useState(profile?.avatar || '');
   const [nickname, setNickname] = useState(profile?.nickname || '');
   const [saving, setSaving] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;
@@ -97,9 +98,17 @@ export default function ProfileEditor({ visible, onClose }) {
             <input
               type="text"
               value={nickname}
-              onChange={(e) => setNickname(e.target.value.slice(0, 5))}
+              onChange={(e) => {
+                if (!isComposing) setNickname(e.target.value.slice(0, 5));
+                else setNickname(e.target.value);
+              }}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={(e) => {
+                setIsComposing(false);
+                setNickname(e.target.value.slice(0, 5));
+              }}
               placeholder="最多5个汉字"
-              maxLength={5}
+              maxLength={10}
               style={{
                 width: '100%', padding: '12px 16px', borderRadius: '10px',
                 border: '1px solid rgba(201,168,76,0.25)', background: 'rgba(0,0,0,0.3)',
