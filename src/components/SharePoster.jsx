@@ -5,8 +5,8 @@ import QRCode from 'qrcode';
 const SITE_URL = 'https://inner-theater.github.io/1/';
 
 const GAMES = [
-  { id: 1, title: '本能之手', tag: '感官先行 · 光球抉择', icon: '✋' },
-  { id: 2, title: '反向恐惧清单', tag: '剥开焦虑 · 找到底线', icon: '📝' },
+  { id: 1, title: '本能之手', tag: '感官先行 · 光球抉择', icon: '🤲' },
+  { id: 2, title: '反向恐惧清单', tag: '剥开焦虑 · 找到底线', icon: '🎭' },
   { id: 3, title: '平行时空来信', tag: '另一条轨迹 · AI 来信', icon: '✉️' },
   { id: 4, title: '朋友灵魂拷问室', tag: '借他人之镜 · 见真实', icon: '👥' },
   { id: 5, title: '价值天平拍卖会', tag: '百枚金币 · 竞标价值', icon: '⚖️' },
@@ -36,20 +36,28 @@ function drawRR(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawHeart(ctx, cx, cy, s) {
+function drawFaceProfile(ctx, cx, cy, facing, size) {
+  // Draw one profile silhouette facing left (facing=-1) or right (facing=1)
+  const dir = facing;
+  const s = size;
+
   ctx.beginPath();
-  const topY = cy - s * 0.35;
-  const bottomY = cy + s * 0.42;
-  const leftX = cx - s * 0.48;
-  const rightX = cx + s * 0.48;
-  // Left lobe
-  ctx.moveTo(cx, bottomY);
-  ctx.bezierCurveTo(cx - s * 0.52, cy + s * 0.12, leftX, topY, cx, topY);
-  // Right lobe
-  ctx.bezierCurveTo(rightX, topY, cx + s * 0.52, cy + s * 0.12, cx, bottomY);
+  // Forehead top
+  ctx.moveTo(cx, cy - s * 0.6);
+  // Forehead curve
+  ctx.bezierCurveTo(cx + dir * s * 0.25, cy - s * 0.55, cx + dir * s * 0.4, cy - s * 0.3, cx + dir * s * 0.32, cy - s * 0.08);
+  // Nose bridge + tip
+  ctx.lineTo(cx + dir * s * 0.22, cy + s * 0.02);
+  ctx.bezierCurveTo(cx + dir * s * 0.35, cy + s * 0.05, cx + dir * s * 0.38, cy + s * 0.1, cx + dir * s * 0.32, cy + s * 0.14);
+  // Upper lip
+  ctx.bezierCurveTo(cx + dir * s * 0.28, cy + s * 0.2, cx + dir * s * 0.3, cy + s * 0.26, cx + dir * s * 0.2, cy + s * 0.28);
+  // Lower lip + chin
+  ctx.bezierCurveTo(cx + dir * s * 0.28, cy + s * 0.34, cx + dir * s * 0.2, cy + s * 0.42, cx, cy + s * 0.45);
+  // Jaw / neck
+  ctx.bezierCurveTo(cx - dir * s * 0.08, cy + s * 0.42, cx - dir * s * 0.05, cy + s * 0.49, cx, cy + s * 0.55);
 }
 
-const POSTER_BG = './images/A_dark_empty_theater_stage_int_2026-06-18T06-36-49.png';
+const POSTER_BG = './images/A_dramatic_warm_lit_theater_st_2026-06-18T06-42-23.png';
 
 async function generatePoster() {
   const W = 750, H = 1334;
@@ -84,88 +92,95 @@ async function generatePoster() {
   ctx.fillStyle = 'rgba(5, 3, 2, 0.95)';
   ctx.fillRect(W - 200, H - 100, 200, 100);
 
-  // 中央区域轻微暗化（突出心形）
+  // 中央区域轻微暗化（突出双人脸）
   const midDark = ctx.createRadialGradient(C, 430, 200, C, 430, 450);
   midDark.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  midDark.addColorStop(1, 'rgba(5, 3, 2, 0.3)');
+  midDark.addColorStop(1, 'rgba(5, 3, 2, 0.25)');
   ctx.fillStyle = midDark;
   ctx.fillRect(0, 200, W, 450);
 
-  // ============ 2. 心 ============
-  const heartCx = C, heartCy = 430, heartSize = 240;
+  // ============ 2. 双人脸 — 内心对话 ============
+  const faceCx = C, faceCy = 420, faceSize = 160;
+  const faceGap = 55; // gap between the two faces
 
-  // 心形柔光
-  ctx.save();
-  ctx.shadowColor = 'rgba(210, 160, 50, 0.35)';
-  ctx.shadowBlur = 50;
-
-  // 心形填充（渐层金色）
-  const heartFill = ctx.createRadialGradient(heartCx, heartCy - 30, 20, heartCx, heartCy, heartSize * 0.6);
-  heartFill.addColorStop(0, 'rgba(40, 25, 5, 0.9)');
-  heartFill.addColorStop(0.6, 'rgba(30, 18, 3, 0.7)');
-  heartFill.addColorStop(1, 'rgba(15, 8, 2, 0.3)');
-  ctx.fillStyle = heartFill;
-  drawHeart(ctx, heartCx, heartCy, heartSize);
+  // 中央光芒（两人脸中间的光源，象征对话与看见）
+  const centerGlow = ctx.createRadialGradient(C, faceCy - 20, 5, C, faceCy - 20, 80);
+  centerGlow.addColorStop(0, 'rgba(255, 230, 160, 0.45)');
+  centerGlow.addColorStop(0.3, 'rgba(230, 190, 100, 0.2)');
+  centerGlow.addColorStop(0.6, 'rgba(180, 130, 60, 0.06)');
+  centerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = centerGlow;
+  ctx.beginPath();
+  ctx.arc(C, faceCy - 20, 80, 0, Math.PI * 2);
   ctx.fill();
+
+  // 左脸（面朝右）
+  const leftCx = C - faceGap / 2;
+  ctx.save();
+  ctx.shadowColor = 'rgba(210, 160, 50, 0.25)';
+  ctx.shadowBlur = 30;
+  // 填充
+  const leftFill = ctx.createLinearGradient(leftCx, faceCy - 60, leftCx + faceSize * 0.3, faceCy);
+  leftFill.addColorStop(0, 'rgba(45, 25, 10, 0.85)');
+  leftFill.addColorStop(0.5, 'rgba(35, 18, 6, 0.65)');
+  leftFill.addColorStop(1, 'rgba(20, 10, 4, 0.35)');
+  ctx.fillStyle = leftFill;
+  drawFaceProfile(ctx, leftCx, faceCy, 1, faceSize);
+  ctx.fill();
+  // 金色轮廓
+  ctx.strokeStyle = 'rgba(220, 175, 70, 0.55)';
+  ctx.lineWidth = 2.2;
+  drawFaceProfile(ctx, leftCx, faceCy, 1, faceSize);
+  ctx.stroke();
+  // 内轮廓微光
+  ctx.strokeStyle = 'rgba(250, 215, 140, 0.3)';
+  ctx.lineWidth = 0.7;
+  drawFaceProfile(ctx, leftCx + 1, faceCy - 1, 1, faceSize - 2);
+  ctx.stroke();
   ctx.restore();
 
-  // 心形内侧微光
+  // 右脸（面朝左）
+  const rightCx = C + faceGap / 2;
   ctx.save();
-  ctx.shadowColor = 'rgba(240, 200, 100, 0.18)';
-  ctx.shadowBlur = 15;
-  const heartInner = ctx.createRadialGradient(heartCx, heartCy - 50, 10, heartCx, heartCy - 10, heartSize * 0.3);
-  heartInner.addColorStop(0, 'rgba(250, 220, 140, 0.25)');
-  heartInner.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = heartInner;
-  drawHeart(ctx, heartCx, heartCy, heartSize * 0.75);
+  ctx.shadowColor = 'rgba(210, 160, 50, 0.25)';
+  ctx.shadowBlur = 30;
+  const rightFill = ctx.createLinearGradient(rightCx, faceCy - 60, rightCx - faceSize * 0.3, faceCy);
+  rightFill.addColorStop(0, 'rgba(45, 25, 10, 0.85)');
+  rightFill.addColorStop(0.5, 'rgba(35, 18, 6, 0.65)');
+  rightFill.addColorStop(1, 'rgba(20, 10, 4, 0.35)');
+  ctx.fillStyle = rightFill;
+  drawFaceProfile(ctx, rightCx, faceCy, -1, faceSize);
   ctx.fill();
+  ctx.strokeStyle = 'rgba(220, 175, 70, 0.55)';
+  ctx.lineWidth = 2.2;
+  drawFaceProfile(ctx, rightCx, faceCy, -1, faceSize);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(250, 215, 140, 0.3)';
+  ctx.lineWidth = 0.7;
+  drawFaceProfile(ctx, rightCx - 1, faceCy - 1, -1, faceSize - 2);
+  ctx.stroke();
   ctx.restore();
 
-  // 心形金边轮廓
-  ctx.strokeStyle = 'rgba(220, 180, 80, 0.5)';
-  ctx.lineWidth = 2.5;
-  ctx.shadowColor = 'rgba(240, 200, 100, 0.25)';
-  ctx.shadowBlur = 12;
-  drawHeart(ctx, heartCx, heartCy, heartSize);
-  ctx.stroke();
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-
-  // 第二层更细的亮边
-  ctx.strokeStyle = 'rgba(250, 220, 150, 0.35)';
-  ctx.lineWidth = 0.8;
-  drawHeart(ctx, heartCx, heartCy, heartSize - 3);
-  ctx.stroke();
-
-  // ============ 3. 心形内部小舞台 ============
-  // 小幕布弧线
-  ctx.strokeStyle = 'rgba(200, 100, 60, 0.25)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(heartCx - 48, heartCy + 18);
-  ctx.quadraticCurveTo(heartCx - 36, heartCy - 28, heartCx - 12, heartCy - 8);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(heartCx + 48, heartCy + 18);
-  ctx.quadraticCurveTo(heartCx + 36, heartCy - 28, heartCx + 12, heartCy - 8);
-  ctx.stroke();
-
-  // 小舞台地板
-  ctx.strokeStyle = 'rgba(200, 160, 80, 0.2)';
+  // 两人脸之间的连接弧线（视觉上让它们对话）
+  ctx.strokeStyle = 'rgba(220, 180, 100, 0.15)';
   ctx.lineWidth = 0.6;
   ctx.beginPath();
-  ctx.moveTo(heartCx - 35, heartCy + 32);
-  ctx.lineTo(heartCx + 35, heartCy + 32);
+  ctx.arc(C, faceCy - faceSize * 0.3, faceGap / 2 + 8, -0.6, Math.PI + 0.6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(C, faceCy - faceSize * 0.3, faceGap / 2 + 8, Math.PI - 0.6, Math.PI * 2 + 0.6);
   ctx.stroke();
 
-  // 小聚光点
-  const spot = ctx.createRadialGradient(heartCx, heartCy + 8, 2, heartCx, heartCy + 8, 18);
-  spot.addColorStop(0, 'rgba(255, 230, 150, 0.4)');
-  spot.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = spot;
-  ctx.beginPath();
-  ctx.arc(heartCx, heartCy + 8, 18, 0, Math.PI * 2);
-  ctx.fill();
+  // 微型光点（像星芒，在两张脸之间）
+  for (let i = 0; i < 5; i++) {
+    const angle = (i / 5) * Math.PI * 2;
+    const px = C + Math.cos(angle) * 18;
+    const py = faceCy - faceSize * 0.2 + Math.sin(angle) * 12;
+    ctx.fillStyle = `rgba(250, 220, 150, ${0.2 + i * 0.05})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 0.8 + i * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // ============ 4. 标题 ============
   ctx.textAlign = 'center';
@@ -206,14 +221,14 @@ async function generatePoster() {
   GAMES.forEach((game, i) => {
     const gx = gameStartX + gameGap * i;
 
-    // 从心形底部向每个游戏发一束微光
-    const rayGrad = ctx.createLinearGradient(heartCx, heartCy + heartSize * 0.42, gx, gamesY - 20);
+    // 从双人脸底部向每个游戏发一束微光
+    const rayGrad = ctx.createLinearGradient(faceCx, faceCy + faceSize * 0.55, gx, gamesY - 20);
     rayGrad.addColorStop(0, 'rgba(200, 150, 60, 0.12)');
     rayGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.strokeStyle = rayGrad;
     ctx.lineWidth = 0.8;
     ctx.beginPath();
-    ctx.moveTo(heartCx, heartCy + heartSize * 0.35);
+    ctx.moveTo(faceCx, faceCy + faceSize * 0.5);
     ctx.lineTo(gx, gamesY - 20);
     ctx.stroke();
 
