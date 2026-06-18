@@ -179,13 +179,22 @@ serve(async (req) => {
       case 'generate-letter':
         systemPrompt = LETTER_SYS;
         temperature = 0.95;
-        maxTokens = 1200;
+        maxTokens = 2500;
         const optA = context.optionA || '';
         const optB = context.optionB || '';
         const chosen = Math.random() > 0.5 ? optA : optB;
         const letterProfile = context.profile;
         const nameCall = letterProfile?.nickname ? `（他叫${letterProfile.nickname}）` : '';
-        userPrompt = `${context.year}年后的你。他当初在「${optA}」和「${optB}」之间纠结，后来选了「${chosen}」。${nameCall} 想象选了之后的生活——在哪个城市、做什么工作、有没有养猫、最近在为什么开心/头疼、想起这个选择时会笑还是叹气。不要讲大道理，就像随口聊往事。${context.year === 1 ? '200' : context.year === 3 ? '300' : '400'}字。`;
+        userPrompt = `${context.year}年后的你。他当初在「${optA}」和「${optB}」之间纠结，后来选了「${chosen}」。${nameCall}
+
+想象选了之后的具体生活——不要太笼统，要像真实记忆一样有细节。写出来：
+- 你在哪个城市、住在什么样的房子里、窗外的风景
+- 做什么工作、每天最享受和最头疼的瞬间
+- 有没有养宠物、有没有身边的人
+- 当初那个选择带来的最大惊喜和最深的遗憾是什么
+- 想到"那个当初纠结的自己"时会有什么感觉
+
+不要讲大道理、不要总结人生意义、不要"亲爱的你"。就是坐下来跟我聊聊。有画面感、有真实的生活气息。${context.year === 1 ? '400' : context.year === 3 ? '600' : '800'}字左右。`;
         break;
       case 'generate-questions':
         systemPrompt = '你是一位精通塔罗牌哲学的创意拷问者。针对用户的具体纠结设计直击灵魂的选择题。每次必须独一无二、绝不重复。直接输出JSON数组。';
