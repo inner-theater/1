@@ -54,7 +54,7 @@ export default function GameCard({ game, index, delay = 0 }) {
         marginBottom: '16px',
         filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
       }}>
-        {icons[index % icons.length]}
+        {game.icon || icons[index % icons.length]}
       </div>
 
       {/* Stage number */}

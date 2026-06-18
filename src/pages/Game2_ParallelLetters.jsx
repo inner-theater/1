@@ -47,7 +47,7 @@ export default function Game2_ParallelLetters() {
         animate={{ opacity: 1, y: 0 }}
       >
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span style={{ fontSize: '56px', display: 'block', marginBottom: '12px' }}>💌</span>
+          <span style={{ fontSize: '56px', display: 'block', marginBottom: '12px' }}>✉️</span>
           <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-display)', color: '#e8d48b', letterSpacing: '4px' }}>
             平行时空来信
           </h2>

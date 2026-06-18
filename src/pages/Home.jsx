@@ -9,6 +9,7 @@ const games = [
     act: '直觉剧场',
     description: '让光球替你选择——在3秒内抓住那个命中注定的答案',
     duration: '约 2 分钟',
+    icon: '🤲',
   },
   {
     path: '/game/reverse-fear',
@@ -17,6 +18,7 @@ const games = [
     act: '直觉剧场',
     description: '逐一删去你害怕的结果，最后留下的就是你的底线',
     duration: '约 3 分钟',
+    icon: '🎭',
   },
   {
     path: '/game/parallel-letters',
@@ -25,6 +27,7 @@ const games = [
     act: '情感剧场',
     description: 'AI为你写下不同选择后的未来信件，触碰那些被忽略的情感',
     duration: '约 5 分钟',
+    icon: '✉️',
   },
   {
     path: '/game/friend-room',
@@ -33,6 +36,7 @@ const games = [
     act: '情感剧场',
     description: '让朋友通过古怪问题，帮你照见自己都没发现的内心答案',
     duration: '约 5 分钟',
+    icon: '🔮',
   },
   {
     path: '/game/value-auction',
@@ -41,6 +45,7 @@ const games = [
     act: '理性剧场',
     description: '用100枚金币竞拍你最珍视的价值，让理性为你导航',
     duration: '约 4 分钟',
+    icon: '⚖️',
   },
 ];
 

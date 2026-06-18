@@ -58,7 +58,7 @@ export default function Game4_ReverseFear() {
         animate={{ opacity: 1, y: 0 }}
       >
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <span style={{ fontSize: '56px', display: 'block', marginBottom: '12px' }}>🃏</span>
+          <span style={{ fontSize: '56px', display: 'block', marginBottom: '12px' }}>🎭</span>
           <h2 style={{ fontSize: '32px', fontFamily: 'var(--font-display)', color: '#e8d48b', letterSpacing: '4px' }}>
             反向恐惧清单
           </h2>
