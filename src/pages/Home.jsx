@@ -47,6 +47,15 @@ const games = [
     duration: '约 4 分钟',
     icon: '⚖️',
   },
+  {
+    path: '/game/personality-test',
+    title: '人格测试',
+    scene: '三',
+    act: '理性剧场',
+    description: '基于大五人格模型，25道题生成专属人格画像卡片',
+    duration: '约 3 分钟',
+    icon: '🧬',
+  },
 ];
 
 export default function Home() {

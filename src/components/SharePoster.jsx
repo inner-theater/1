@@ -115,6 +115,7 @@ const ACTS = [
   { num: '三', title: '平行时空来信', sub: 'FUTURE' },
   { num: '四', title: '朋友灵魂拷问室', sub: 'OTHERS' },
   { num: '五', title: '价值天平拍卖会', sub: 'VALUE' },
+  { num: '六', title: '人格测试', sub: 'PERSONALITY' },
 ];
 
 async function generatePoster() {

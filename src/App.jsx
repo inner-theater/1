@@ -9,6 +9,7 @@ import Game2_ParallelLetters from './pages/Game2_ParallelLetters';
 import Game3_FriendRoom from './pages/Game3_FriendRoom';
 import Game4_ReverseFear from './pages/Game4_ReverseFear';
 import Game5_ValueAuction from './pages/Game5_ValueAuction';
+import Game6_PersonalityTest from './pages/Game6_PersonalityTest';
 import DecisionDiary from './pages/DecisionDiary';
 import DecisionMuseum from './pages/DecisionMuseum';
 import AnswerPage from './pages/AnswerPage';
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/game/friend-room" element={<Game3_FriendRoom />} />
             <Route path="/game/reverse-fear" element={<Game4_ReverseFear />} />
             <Route path="/game/value-auction" element={<Game5_ValueAuction />} />
+            <Route path="/game/personality-test" element={<Game6_PersonalityTest />} />
             <Route path="/diary" element={
               <ProtectedRoute><DecisionDiary /></ProtectedRoute>
             } />

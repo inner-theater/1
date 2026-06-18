@@ -198,6 +198,19 @@ serve(async (req) => {
         const archetypeContext = selectedArchetypes.map(a => `- ${a}`).join('\n');
         userPrompt = `用户纠结：「${context.question || ''}」\n\n生成10道灵魂拷问选择题，每道4个选项。必须紧扣他的具体问题，不能用通用题。从以下塔罗原型借视角：${archetypeContext}\n4个选项形成有意义的对照。题目从具体到深层。随机种子${shuffleSeed}，每次必须不同。\n\n输出：[{"q":"题面","options":["A.一","B.二","C.三","D.四"]},...]`;
         break;
+      case 'personality-test':
+        systemPrompt = '你是一个温和而有洞察力的人格分析师。你了解大五人格模型(OCEAN)，能做深入但不说教的解读。像朋友聊天一样分析，不要套公式，不要贴标签。800字左右。';
+        temperature = 0.9;
+        maxTokens = 2500;
+        const ptscores = context.scores || {};
+        const slines = Object.entries(ptscores).map(([dim, score]) => {
+          const label = { openness:'开放性', conscientiousness:'尽责性', extraversion:'外向性', agreeableness:'宜人性', neuroticism:'情绪稳定性' }[dim] || dim;
+          const emoji = { openness:'🎨', conscientiousness:'📋', extraversion:'🎤', agreeableness:'🤝', neuroticism:'🧘' }[dim] || '';
+          return `${emoji} ${label}：${score}/10`;
+        }).join('\n');
+        userPrompt = `用户做了大五人格测试（OCEAN模型），得分如下：\n${slines}\n\n请像老朋友一样解读这份人格画像。说人话，有情绪，有温度。引用得分数字但不要念数据。可以联系文学、电影、生活中的例子。写出深度。800字左右。`;
+        break;
+
       default:
         return new Response(JSON.stringify({ error: '未知类型' }), { status: 400, headers: corsHeaders });
     }
