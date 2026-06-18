@@ -4,8 +4,10 @@ import QRCode from 'qrcode';
 // AI生成的完整海报底图（包含：标题、剧场场景、五幕剧、slogan）
 const POSTER_BG = './images/A_vertical_poster_design_for_a_2026-06-18T06-48-58.png';
 
-export default function SharePoster({ onClose }) {
+export default function SharePoster({ visible, onClose }) {
   const [generating, setGenerating] = React.useState(false);
+
+  if (!visible) return null;
 
   async function handleGenerate() {
     setGenerating(true);
