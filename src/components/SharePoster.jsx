@@ -144,15 +144,15 @@ async function generatePoster() {
   }
   ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, W, H);
 
-  // 覆盖原五幕文字区域（暗化遮罩）
+  // 覆盖原五幕文字区域（暗化遮罩，下移到露出人物腿部）
   ctx.fillStyle = 'rgba(26, 8, 6, 0.92)';
-  ctx.fillRect(0, 720, W, 420);
+  ctx.fillRect(0, 790, W, 544);
 
   // 画新的五幕文字 —— 垂直时间线风格
-  const startY = 760;
+  const startY = 830;
   const lineX = W / 2;
-  const lineTop = startY - 20;
-  const lineBottom = startY + ACTS.length * 72 + 10;
+  const lineTop = startY - 15;
+  const lineBottom = startY + ACTS.length * 72 + 5;
 
   // 中央时间线
   ctx.strokeStyle = 'rgba(201, 168, 76, 0.35)';
@@ -209,21 +209,16 @@ async function generatePoster() {
     ctx.textAlign = align;
     ctx.fillText(act.sub, textX, y + 32);
   });
-
-  // 底部遮罩（覆盖原slogan和水印）
-  ctx.fillStyle = 'rgba(26, 8, 6, 0.95)';
-  ctx.fillRect(0, 1140, W, 194);
-
-  // 重新画slogan
-  ctx.fillStyle = 'rgba(201, 168, 76, 0.85)';
-  ctx.font = '18px "PingFang SC", "Microsoft YaHei", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('五个维度，一场与自己的对话', W / 2, 1175);
-
-  // 二维码区域（右下角）
+  // 二维码（右下角）
   const qrSize = 90, qrMargin = 20;
   const qrX = W - qrSize - qrMargin, qrY = H - qrSize - qrMargin;
+  const qrCenterY = qrY + qrSize / 2;
 
+  // slogan 与二维码同行（左侧）
+  ctx.fillStyle = 'rgba(201, 168, 76, 0.85)';
+  ctx.font = '17px "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('五个维度，一场与自己的对话', 30, qrCenterY + 5);
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.beginPath();
   ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 8);
