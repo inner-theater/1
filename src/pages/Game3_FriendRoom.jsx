@@ -543,7 +543,12 @@ export default function Game3_FriendRoom() {
                 visible={true}
                 context={{
                   question,
-                  feedback: questions.slice(0, 5).map((q, i) => `Q${i + 1}: ${answers[q.id] ? `选了${answers[q.id]}` : ''}`).join('; '),
+                  answers: questions.map((q, i) => ({
+                    no: i + 1,
+                    q: q.q,
+                    selected: answers[q.id] ? (q.options || []).find(o => o.label === answers[q.id])?.text || answers[q.id] : '未作答',
+                  })),
+                  tarotCard: resultCard ? `${resultCard.name} ${resultCard.emoji}——${resultCard.meaning}` : '',
                 }}
               />
             </motion.div>

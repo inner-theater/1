@@ -89,9 +89,28 @@ serve(async (req) => {
         userPrompt = `用户读了不同未来的信。他在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。触动他的句子：${context.highlights || '无'}。请用这两个具体选项来组织你的分析，温暖鼓励，不要标题，200字。`;
         break;
 
-      case 'friend-room':
-        userPrompt = `用户通过朋友拷问室获得外部视角，纠结「${context.question || ''}」。${context.feedback ? `朋友反馈：${context.feedback}` : ''}请温和分析外部声音的价值和独立内心的意义，不要标题，150字。`;
+      case 'friend-room': {
+        const answersLines = Array.isArray(context.answers)
+          ? context.answers.filter(a => a.selected && a.selected !== '未作答').map(a =>
+              `第${a.no}题：「${a.q}」→ 选了「${a.selected}」`
+            ).join('\n')
+          : (context.feedback || '');
+
+        userPrompt = `用户玩"朋友灵魂拷问室"，纠结「${context.question || ''}」。
+
+他的回答：
+${answersLines || '未记录详细答案'}
+
+他抽到的塔罗牌：${context.tarotCard || '未记录'}
+
+请根据以上完整的问答过程，做一段走心的个性化解读：
+1. 结合他每道题的具体答案，分析他的心理倾向——注意他答案中的矛盾和一致性，比如嘴上说害怕风险但身体却选了冒险的选项，或者前后答案展现出某种行为模式
+2. 结合塔罗牌的寓意，告诉他这张牌和他的答题模式之间有什么呼应
+3. 基于他的选择模式，给一句具体的鼓励或行动建议
+
+不要标题，不要markdown，像朋友深夜聊天一样自然，250字以内。`;
         break;
+      }
 
       case 'diary-analysis':
         systemPrompt = `你是一个温柔有洞察力的朋友，擅长从行为记录中读懂一个人。`;
