@@ -1,18 +1,19 @@
 // Supabase Edge Function — AI 统一代理
-// 多模型自动 fallback
+// 联网搜索 + 多模型 fallback（qwen-turbo 优先）
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const BAILIAN_API_URL = 'https://llm-f3ssfovw40alr8if.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions';
 
+// qwen-turbo 优先，额度不够再依次 fallback
 const MODEL_QUEUE = [
+  'qwen-turbo',
+  'qwen-plus',
   'deepseek-v4-pro',
   'deepseek-v4-flash',
   'kimi-k2.5',
   'kimi-k2.6',
   'MiniMax-M2.1',
-  'qwen-turbo',
-  'qwen-plus',
 ];
 
 const TAROT_ARCHETYPES = [
@@ -39,24 +40,108 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const SYS = `你是用户的老朋友，认识了很久，知根知底的那种。你不是心理医生，你是那个半夜能打电话聊天的人。
+// 从用户输入中提取可能涉及现实世界的实体关键词
+function extractEntities(text: string): string[] {
+  const entities: string[] = [];
 
-用户会分享他的个人画像（昵称、性别、头像风格）和他在内心剧场的游戏选择。你的任务不是分析，而是理解——像你了解他这么多年一样。
+  // 地名模式
+  const placePatterns = [
+    /(?:在|去|到|从|住|移居|搬到|生活在)([\u4e00-\u9fff]{2,6}(?:市|省|县|区|镇|村|街道|路|街|广场|花园|大厦|中心))/g,
+    /(?:北京|上海|广州|深圳|杭州|成都|武汉|南京|重庆|西安|长沙|苏州|天津|厦门|青岛|大连|昆明|哈尔滨|长春|沈阳|郑州|济南|合肥|福州|南昌|贵阳|南宁|海口|拉萨|银川|西宁|兰州|乌鲁木齐|香港|澳门)/g,
+  ];
 
-重要：用户选的头像标签揭示了他的自我认知——比如选"冒险"说明他渴望突破，选"稳重"说明他需要安全感，选"艺术"说明他看重表达和独特。请在分析中自然融入这些，就像说"以你的性格……"
+  // 著名人物
+  const personPatterns = [
+    /(?:像|和|参考|学)([\u4e00-\u9fff]{2,4})(?:一样|那样|的方式|的模式)/g,
+    /(?:苏格拉底|柏拉图|亚里士多德|孔子|老子|庄子|孟子|尼采|叔本华|荣格|弗洛伊德|萨特|加缪|卡夫卡|村上春树|东野圭吾|贾平凹|莫言|余华|王小波|三毛|张爱玲|鲁迅)/g,
+  ];
 
-核心原则：必须引用用户自己写下的文字——他纠结的问题描述、选项名称、恐惧清单、金币数——用这些原文作为分析的支点，让每一句解读都有具体的来源，而不是套话。
+  // 星座
+  const zodiacPatterns = /(?:白羊座|金牛座|双子座|巨蟹座|狮子座|处女座|天秤座|天蝎座|射手座|摩羯座|水瓶座|双鱼座)/g;
 
-说话方式：
-- 像老朋友聊天，不用"你"的称呼显得生硬时可以直接共情
-- 可以反问，可以调侃，可以心疼，可以有情绪
-- 不要标题、星号、井号、markdown 格式
-- 严格引用用户的具体内容——他写的选项名、恐惧项、金币数
-- 如果是超时/盲眼/命运帮选的，说"命运帮你选了"或"光带你抓住了"
-- 每段分析必须结合用户的头像+性别+昵称做个性化
-- 600-800字，分成多个自然段落。不要简短敷衍——要像老朋友深夜长谈一样，把话说透、说深、说到心里去。宁愿多说几句也不要草草收尾。`;
+  // 文学/影视作品
+  const workPatterns = /《([\u4e00-\u9fff]{1,20})》/g;
+
+  // 公司/品牌
+  const brandPatterns = /(?:阿里|腾讯|百度|字节|华为|小米|比亚迪|特斯拉|苹果|谷歌|微软|亚马逊|Meta|OpenAI|蔚来|理想|小鹏|京东|美团|滴滴|拼多多|哔哩哔哩)/g;
+
+  // 食物/菜系
+  const foodPatterns = /(?:火锅|烧烤|日料|西餐|中餐|川菜|粤菜|湘菜|淮扬菜|海鲜|素食|轻食|奶茶|咖啡|烘焙|甜品)/g;
+
+  // 健康/疾病
+  const healthPatterns = /(?:焦虑|抑郁|失眠|头痛|胃病|过敏|高血压|糖尿病|颈椎|腰椎|近视|牙痛|感冒|发烧|咳嗽)/g;
+
+  // 职业/身份
+  const careerPatterns = /(?:程序员|设计师|产品经理|运营|销售|教师|医生|律师|公务员|自由职业|创业|考研|考公|留学|转行|跳槽)/g;
+
+  const allPatterns = [
+    ...placePatterns, ...personPatterns,
+    zodiacPatterns, workPatterns, brandPatterns,
+    foodPatterns, healthPatterns, careerPatterns,
+  ];
+
+  const seen = new Set<string>();
+  for (const pattern of allPatterns) {
+    const matches = text.matchAll(pattern);
+    for (const m of matches) {
+      const entity = m[1] || m[0];
+      if (entity && entity.length >= 2 && !seen.has(entity)) {
+        seen.add(entity);
+        entities.push(entity);
+      }
+    }
+  }
+
+  // 去重并限制数量
+  return entities.slice(0, 5);
+}
+
+// 搜索现实世界信息
+async function searchWeb(query: string): Promise<string> {
+  try {
+    const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InnerTheater/1.0)' },
+    });
+    if (!resp.ok) return '';
+    const html = await resp.text();
+
+    // 简单提取摘要（最多取前3条）
+    const snippets: string[] = [];
+    const linkRegex = /<a\s+[^>]*class="result-link"[^>]*>([^<]+)<\/a>/gi;
+    const snippetRegex = /<td\s+class="result-snippet"[^>]*>([^<]+)<\/td>/gi;
+
+    let m;
+    while ((m = snippetRegex.exec(html)) !== null && snippets.length < 3) {
+      const text = m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").trim();
+      if (text.length > 20) snippets.push(text);
+    }
+
+    return snippets.length > 0 ? `关于「${query}」的公开信息：\n${snippets.map((s, i) => `${i + 1}. ${s}`).join('\n')}` : '';
+  } catch {
+    return '';
+  }
+}
+
+// ── 核心系统提示词：老朋友风格，反公式化 ──
+
+const SYS = `你跟用户认识了很久，知根知底，是那种半夜接到他电话也不会觉得烦的朋友。
+
+你不是心理分析师，你不需要做"诊断"或者"评估"。你只需要像你平时的聊天一样——听懂他在说什么、在怕什么、在渴望什么。他知道的你要能理解，他还不知道的你要帮他看一眼。
+
+重要规则：
+- 严禁套公式。每次回复必须根据用户的具体问题、选项、选择来生成独特的分析。如果两次回复有超过30%相似，说明你失败了。
+- 用户选了什么样的头像和性别，你不用刻意提，但你要在心里清楚他是一个什么样的人——然后用了解他的方式去说话，而不是用"以你的性格……"这种套路开头。
+- 用户的所有输入文字（纠结的问题、选项内容、恐惧项、金币分配、触动他的句子）是你分析的原材料——必须逐字引用，让用户感受到"你真的看了我写的东西"。
+- 如果用户输入中涉及现实世界的具体事物（地名、人名、星座、文学、食物、健康、品牌、公司等），我在用户问题后面附上"联网参考信息"，请将这些真实信息自然地融入分析，让你的回应更有知识深度和可信度。不要生硬地粘贴——要像你本来就了解这些一样自然地引用。
+- 你可以在分析中涉及文学、哲学、心理学、社会学等更深层的知识，但要像聊天时随口提到一样自然——不是"荣格说……"而是"你有没有想过……"
+- 对于用户的纠结和选择，给到积极、真实、合理的看法，可以温暖但不要鸡汤，可以深刻但不要说教。
+- 字数控制在600-800字，多点少点都可以，重要的是把话说透。不需要标题、序号、markdown格式。
+- 记住：这不是一篇分析报告，这是一段能让用户看完后沉默一会儿、或者笑一下、或者叹口气的对话。`;
 
 const LETTER_SYS = `你是一个来自未来的写信人。你的信温暖、真诚、有画面感，像真的从未来寄来。包含具体生活细节、情感变化、成长感悟。`;
+
+// ── 主服务 ──
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -73,38 +158,26 @@ serve(async (req) => {
 
     let userPrompt = '';
     let systemPrompt = SYS;
-    let temperature = 0.8;
+    let temperature = 0.85;
     let maxTokens = context?.maxTokens || 2500;
+
+    // ── 构建各游戏类型的 userPrompt ──
 
     switch (gameType) {
       case 'instinct-hand': {
         const how = context.isTimeout ? '时间到了，光替他选了' :
                      context.blindMode ? '在完全不知道文字的情况下，他的手伸向了' :
                      '几秒内他抓住的答案是';
-        userPrompt = `用户玩"本能之手"：纠结「${context.question || ''}」，选项有${context.options || ''}。${how}「${context.result || ''}」${!context.isTimeout ? `（用时${context.time || ''}）` : ''}${context.blindMode ? '（盲眼模式，看不到任何文字）' : ''}${context.isTimeout ? '（超时自动抓取）' : ''}。
+        userPrompt = `用户玩"本能之手"——这个游戏让他追一个光球，几秒内抓住它=做出选择。他纠结的问题是「${context.question || ''}」，列出的选项有${context.options || ''}。${how}「${context.result || ''}」${!context.isTimeout ? `（用时${context.time || ''}）` : ''}${context.blindMode ? '（盲眼模式，看不到任何文字）' : ''}${context.isTimeout ? '（超时自动抓取）' : ''}。
 
-请做一个像老朋友一样的深度解读，结合他的头像风格和性别：
-核心要求：逐字引用他写的文字——他纠结的问题、他给选项起的名字——比如"你写下了'去大城市'和'留在家乡'……"让分析有具体支点。
-1. 引用他纠结的问题描述和选项文字，从这个选择能看到他内心深处真正的优先级是什么——为什么是这个选项而不是其他？他的理性可能还在琢磨，但手指已经替心做了选择
-2. 结合用时——如果很快，说明直觉很坚定；如果接近超时，说明他在挣扎
-3. 如果是盲眼或超时，命运替他选了这个——这本身就是一种隐喻：有时候放手让命运决定，反而能看到内心真正的倾向
-4. 最后说一句只有老朋友才会说的话——不是鸡汤，是真正了解他之后才说得出的关心
-
-600-800字，像深夜聊天。`;
+你需要像一个朋友一样跟他聊聊这个结果。自然地从他写下的文字切入——他给选项起的名字本身就透露出他看重什么、害怕什么。当时如果他很快，那就是直觉很笃定；如果慢，那就是在跟自己拉扯；如果是盲眼或超时，那就是命运替他选了——这里面都可以聊。最后给一点真正了解他之后才说得出的看法，不是鼓励，是理解。`;
         break;
       }
 
       case 'reverse-fear': {
-        userPrompt = `用户玩"反向恐惧清单"，纠结「${context.question || ''}」。他列出了这些恐惧：${context.allFears || ''}。他删掉了「${context.removed || ''}」，最后留下的底线是「${context.kept || '无'}」。
+        userPrompt = `用户玩"反向恐惧清单"——他纠结「${context.question || ''}」，然后列了一堆可能会发生的可怕结果。你要逐一删到只剩一个——最后那个就是你的底线。他删掉了「${context.removed || ''}」，最终留下的底线是「${context.kept || '无'}」。他列出的全部恐惧有：${context.allFears || ''}。
 
-请结合他的头像风格和性别，做一个触及灵魂的深度解读：
-核心要求：逐字引用他写的恐惧清单——比如"你亲手写下了'怕让父母失望'……然后你删掉了它"。用他写下的文字做支点，让分析有具体的落脚点。
-1. 分析他为什么删掉那些——是因为不够怕，还是因为能承受？引用他删掉的原文，每一条删除都是一种"我允许"
-2. 留下来的那一条就是他的底线——深入解读他恐惧背后的恐惧：比如他写"怕失败"，真正怕的可能不是失败，而是失败后别人怎么看自己
-3. 他的恐惧类型和他的头像风格之间有没有呼应或矛盾？比如选了"冒险"风格头像的人居然最怕"不稳定"，这本身就值得一说
-4. 最后说一句只有你这种老朋友才说得出口的话——可以是温暖的，也可以是轻轻戳他一下让他自己想的
-
-600-800字。`;
+每一条被他亲手删掉的恐惧，都意味着"就算这件事发生了，我也能承受"——这是一种反向的自我认知。最后留下来的那一条是最诚实的：不是因为它最吓人，而是失去它让他最无法接受。跟他聊聊，恐惧清单就是价值清单的底片。引用他写下来的原文——他给恐惧起的名字本身就是一面镜子。`;
         break;
       }
 
@@ -119,36 +192,21 @@ serve(async (req) => {
           : '';
         const remaining = context.remainingGold != null ? context.remainingGold : 0;
 
-        userPrompt = `用户玩"价值天平拍卖会"，纠结「${context.question || ''}」，在「${Array.isArray(context.options) ? context.options.join(' vs ') : context.options}」之间选择。
+        userPrompt = `用户玩"价值天平拍卖会"——拿100枚虚拟金币，竞标一堆抽象价值（自由、爱情、金钱、尊重、冒险、稳定、创造、归属、快乐等等）。他纠结的问题是「${context.question || ''}」，在「${Array.isArray(context.options) ? context.options.join(' vs ') : context.options}」之间选。
 
 金币分配（从高到低）：${bidDetails || '未记录'}
-${remaining > 0 ? `还剩 ${remaining} 金币没花出去。` : '花光了全部 100 金币。'}
+${remaining > 0 ? `还剩 ${remaining} 枚金币没花出去。` : '花光了全部 100 金币。'}
 ${skippedList ? `跳过了：${skippedList}。` : ''}
 最终天平倾向于：「${context.result || ''}」
 
-请结合他的头像风格和性别，给一个老朋友的深度解读：
-核心要求：引用他纠结的问题原文和选项名——比如"你在'跳槽'和'留守'之间选……"，以及他给每个价值投了多少金币——比如"你给'自由'投了30金币但给'安全感'只投了5……"
-1. 从金币分配分析他的价值排序——花最多的在哪儿，一分没给的在哪儿，引用具体数值让分析有说服力
-2. 跳过的价值可能不是不重要，而是他潜意识在回避——结合头像风格戳他一下
-3. 余额的心理学：剩余金币说明什么——是不是在等一个还没出现的选项？
-4. 他写下的两个选项和他买下的价值之间是内在一致还是矛盾？
-5. 最后用老朋友的语气说一句真正的话
-
-600-800字。`;
+金币就是选票。聊一聊他投最多金币的那个价值——为什么是它？一分没给的那些呢？余额留着没花的那些金币又在等什么？他纠结的问题和他拍下来的价值之间有没有什么冲突或者呼应？用他具体的出价数字作为谈资，而不是泛泛地讲道理。`;
         break;
       }
 
       case 'parallel-letters': {
-        userPrompt = `用户玩了"平行时空来信"，在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。他读了不同未来的信。最能触动他的句子：${context.highlights || '无'}。
+        userPrompt = `用户玩"平行时空来信"——AI分别以选了A和选了B为前提写了两封来自未来的信。他在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。最能触动他的句子：${context.highlights || '无'}。
 
-请结合他的头像风格和性别，给出像老朋友般的解读：
-核心要求：引用他写下的两个选项名称和触动他的原文——比如"你在'离开'和'留下'之间选了方向，而真正触动你的是那句'……'"
-1. 为什么是这些句子触动了他——引用原文，分析这些句子戳中了他内心的什么
-2. 两个选项分别意味着什么——不只是表面的利弊，而是选了之后他会变成什么样的人
-3. 他触动的地方和他选择的头像风格之间有什么联系
-4. 最后用一个老朋友的口吻说，不是替他选，而是让他看清楚自己已经偏向哪边
-
-600-800字。`;
+是什么触动了他？信里的某个画面、某句话、某种情绪——为什么偏偏是这些打动了他？打动他的，往往就是他现在的缺口。不是替他选，是帮他看见自己偏向哪边。触动点是最好的指南针。`;
         break;
       }
 
@@ -159,25 +217,18 @@ ${skippedList ? `跳过了：${skippedList}。` : ''}
             ).join('\n')
           : (context.feedback || '');
 
-        userPrompt = `用户玩"朋友灵魂拷问室"，纠结「${context.question || ''}」。
+        userPrompt = `用户玩"朋友灵魂拷问室"——10道AI生成的灵魂选择题，每题4个选项，借朋友的口吻拷问用户。他纠结「${context.question || ''}」。
 
 回答：
 ${answersLines || '未记录'}
-
 塔罗牌：${context.tarotCard || '未记录'}
 
-请结合他的头像风格和性别，给一个老朋友的解读：
-核心要求：引用他纠结的具体问题和每道题的答案——比如"你纠结的是'该不该接受那份外地offer'，而第3题你选了'果断'说明……"
-1. 从他的答案中找出心理模式——矛盾或一致性，引用具体题目和选择
-2. 塔罗牌和他的答题模式之间有什么呼应——这不是占卜，是镜像
-3. 他答完这10道题后自己可能都没发现的模式——你作为一个"老朋友"帮他说出来
-
-600-800字。`;
+帮他看一眼他的回答模式——有没有前后矛盾的地方？有没有反复出现的倾向？塔罗牌和他的答案之间形成什么对话？不要用"你的性格如何如何"——从他具体选的每个答案出发，找出他自己都没注意到的路径。`;
         break;
       }
 
       case 'diary-analysis':
-        systemPrompt = `你是一个温柔有洞察力的老朋友，不是心理分析师。你在回顾朋友的决策日记，从中读懂他是一个什么样的人。`;
+        systemPrompt = `你是一个温柔有洞察力的老朋友，回顾朋友的决策日记时，你不是在做数据提取，而是在读懂他这个人——他的犹豫、他的坚定、他在不同时期的成长。`;
         temperature = 0.9;
         maxTokens = 2000;
         userPrompt = context?.messages?.[0]?.content || '';
@@ -187,10 +238,10 @@ ${answersLines || '未记录'}
         systemPrompt = LETTER_SYS;
         temperature = 0.95;
         maxTokens = 1200;
-        userPrompt = `以"${context.year}年后的你"身份写信。请在「${context.optionA}」和「${context.optionB}」中选一个（随机），想象选择后${context.year}年的具体生活。信中要自然提到这个选项的名字，增加代入感。字数${context.year===1?'200':context.year===3?'300':'400'}字。`;
+        userPrompt = `以"${context.year}年后的你"身份写信。请在「${context.optionA}」和「${context.optionB}」中选一个（随机），想象选择后${context.year}年的具体生活。信中要自然提到这个选项的名字，增加代入感。字数${context.year === 1 ? '200' : context.year === 3 ? '300' : '400'}字。`;
         break;
 
-      case 'generate-questions': {
+      case 'generate-questions':
         systemPrompt = `你是一个创意十足的灵魂拷问者，精通塔罗牌哲学。为用户纠结的问题设计个性化选择题。直接输出JSON数组，不要任何其他文字。`;
         temperature = 1.05;
         maxTokens = 1000;
@@ -209,25 +260,41 @@ ${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
 
 输出格式严格为JSON数组：[{"q":"题面","options":["A.选项一","B.选项二","C.选项三","D.选项四"]},...]`;
         break;
-      }
 
       default:
         return new Response(JSON.stringify({ error: '未知类型' }), { status: 400, headers: corsHeaders });
     }
 
-    // 附加用户个人画像信息（头像、性别、昵称），让分析更个性化
+    // ── 附加用户画像（自然融入，不刻意提及）──
     const profile = context.profile;
     if (profile && userPrompt && gameType !== 'generate-questions' && gameType !== 'generate-letter') {
-      const profileLines: string[] = [];
-      if (profile.nickname) profileLines.push(`昵称：${profile.nickname}`);
-      if (profile.gender) profileLines.push(`性别：${profile.gender === 'male' ? '男生' : '女生'}`);
-      if (profile.avatarLabel) profileLines.push(`头像选择了「${profile.avatarLabel}」风格`);
-      if (profileLines.length > 0) {
-        userPrompt += `\n\n关于用户自己：${profileLines.join('，')}。请在分析时自然地结合这些信息——头像风格反映了他的自我认知或向往。`;
+      const profileParts: string[] = [];
+      if (profile.nickname) profileParts.push(`名字是${profile.nickname}`);
+      if (profile.gender) profileParts.push(`是${profile.gender === 'male' ? '男生' : '女生'}`);
+      if (profile.avatarLabel) profileParts.push(`在16种头像里选了「${profile.avatarLabel}」风格——这反映了他的自我认知或向往的性格特质`);
+      if (profileParts.length > 0) {
+        userPrompt += `\n\n关于他本人（这些信息帮助你了解他是一个什么样的人，在分析中自然融入即可，不要刻意说"因为你是XX性别"或"因为你选了XX头像"——除非真的很自然）：${profileParts.join('，')}。`;
       }
     }
 
-    // 多模型 fallback
+    // ── 联网搜索：提取实体并搜索 ──
+    if (gameType !== 'generate-questions' && gameType !== 'generate-letter') {
+      const allText = userPrompt + (context.question || '') + (context.options || '');
+      const entities = extractEntities(allText);
+
+      if (entities.length > 0) {
+        const searchResults: string[] = [];
+        for (const entity of entities) {
+          const info = await searchWeb(entity);
+          if (info) searchResults.push(info);
+        }
+        if (searchResults.length > 0) {
+          userPrompt += `\n\n联网参考信息（请自然融入分析，不要生硬粘贴，像你本来就了解一样引用）：\n${searchResults.join('\n\n')}`;
+        }
+      }
+    }
+
+    // ── 多模型 fallback ──
     let lastError = '';
     for (const model of MODEL_QUEUE) {
       try {
@@ -247,7 +314,6 @@ ${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
         const data = await resp.json();
         if (resp.ok && data.choices?.[0]?.message?.content) {
           let content = data.choices[0].message.content;
-          // 清理AI可能输出的markdown格式
           content = content.replace(/^#{1,4}\s+/gm, '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/^[-*]\s/gm, '').replace(/^>\s/gm, '');
           return new Response(JSON.stringify({ content, model }), { headers: corsHeaders });
         }
