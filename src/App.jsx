@@ -11,6 +11,7 @@ import Game4_ReverseFear from './pages/Game4_ReverseFear';
 import Game5_ValueAuction from './pages/Game5_ValueAuction';
 import DecisionDiary from './pages/DecisionDiary';
 import DecisionMuseum from './pages/DecisionMuseum';
+import AnswerPage from './pages/AnswerPage';
 import './styles/index.css';
 
 function ProtectedRoute({ children }) {
@@ -38,6 +39,7 @@ export default function App() {
               <ProtectedRoute><DecisionDiary /></ProtectedRoute>
             } />
             <Route path="/museum" element={<DecisionMuseum />} />
+            <Route path="/answer/:code" element={<AnswerPage />} />
           </Routes>
         </Layout>
       </HashRouter>

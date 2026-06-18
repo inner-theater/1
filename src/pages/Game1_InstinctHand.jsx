@@ -818,6 +818,7 @@ export default function Game1_InstinctHand() {
                   result: caught?.label || '',
                   time: catchTime.toFixed(1) + '秒',
                   blindMode,
+                  isTimeout: isTimeUp,
                 }}
               />
             </motion.div>
