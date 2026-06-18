@@ -76,30 +76,81 @@ function fallbackAnalysis(scores) {
     .map(([k, v]) => ({ dim: k, score: v, ...DIM_LABELS[k] }))
     .sort((a, b) => b.score - a.score);
 
-  const top = sorted[0];
-  const bottom = sorted[4];
-  const topLabel = top.score >= 8 ? '非常' : '比较';
+  const top = sorted[0], second = sorted[1], bottom = sorted[4];
+  const typeName = getPersonalityType(sorted);
 
-  let analysis = `根据大五人格模型（OCEAN），你的性格画像中最突出的是${top.emoji}「${top.name}」（得分 ${top.score}/10），属于${topLabel}高的水平。${top.desc}——这在你身上体现得尤为明显。\n\n`;
+  let a = `${typeName}\n\n`;
+  a += `在你的五维人格画像中，${top.emoji}「${top.name}」最为突出——${top.score}/10。这意味着${getDimDeepDesc(top.dim, top.score)}\n\n`;
+  a += `紧随其后的是${second.emoji}「${second.name}」（${second.score}/10）。${getDimDeepDesc(second.dim, second.score)}\n\n`;
+  a += `相对低调的是${bottom.emoji}「${bottom.name}」（${bottom.score}/10）。${getLowDesc(bottom.dim, bottom.score)}\n\n`;
 
-  analysis += `而得分最低的是${bottom.emoji}「${bottom.name}」（${bottom.score}/10）。`;
-
-  if (bottom.dim === 'extraversion' && bottom.score <= 4) {
-    analysis += '你更享受独处的深度，热闹对你来说是消耗而不是充电。这完全没问题——内向者的能量来源是向内探索，而不是向外索取。';
-  } else if (bottom.dim === 'neuroticism' && bottom.score <= 4) {
-    analysis += '你的情绪非常稳定，像一棵扎根很深的树，风吹得动枝叶但动不了根。这是非常难得的心理素质。';
-  } else if (bottom.dim === 'openness' && bottom.score <= 4) {
-    analysis += '你偏爱熟悉和稳定的环境，不喜欢无谓的变化。但可预测的世界也有它的深度——就像反复读一本好书，每次都能发现新的层次。';
-  } else if (bottom.dim === 'agreeableness' && bottom.score <= 4) {
-    analysis += '你有自己的边界，不轻易妥协。这在需要保护自己能量的时候是极其重要的能力。';
-  } else if (bottom.dim === 'conscientiousness' && bottom.score <= 4) {
-    analysis += '你更随性自由，不喜欢被条条框框束缚。创造力往往在不按计划来的瞬间迸发。';
+  // 综合描述
+  const combo = `${top.dim}_${second.dim}`;
+  if (combo === 'openness_extraversion' || combo === 'extraversion_openness') {
+    a += '你像一阵自由的风——对世界充满好奇，也不怕被人看到。创作、旅行、与人碰撞出新想法，这些是你最自然的呼吸方式。但偶尔也需要港湾：一个能让你停下来消化这一切的人或地方。';
+  } else if (combo.includes('conscientiousness') && combo.includes('agreeableness')) {
+    a += '你是那种让人安心的存在——靠谱、有规划、也为别人着想。团队里你可能是最早到最晚走的那个人。但要记得，对自己好一点：你不是超人，偶尔也可以让别人来照顾你。';
+  } else if (combo.includes('openness') && combo.includes('neuroticism')) {
+    a += '你的内心世界丰富得像一座美术馆——但有些展厅你不太敢自己进去。敏感是一把双刃剑：它让你看到别人忽略的美，也让你感受到别人不在意的痛。创作可能是你最好的出口。';
+  } else {
+    a += '你的人格画像有一个独特之处——看似矛盾的两种特质在你身上和谐共存。这本身就是一种礼物：你能理解两边的人，能从不同角度看世界。别急着给自己贴标签，模糊地带往往是最精彩的部分。';
   }
 
-  analysis += `\n\n${top.emoji} ${top.name}（${top.score}分）| ${sorted[1].emoji} ${sorted[1].name}（${sorted[1].score}分）| ${sorted[2].emoji} ${sorted[2].name}（${sorted[2].score}分）| ${sorted[3].emoji} ${sorted[3].name}（${sorted[3].score}分）| ${bottom.emoji} ${bottom.name}（${bottom.score}分）`;
-  analysis += '\n\n记住一点：人格不是固定不变的标签，它是你与世界互动方式的快照。今天的你，就是最真实的版本。';
+  a += `\n\n${top.emoji}${top.name} ${top.score}/10 · ${sorted[1].emoji}${sorted[1].name} ${sorted[1].score}/10 · ${sorted[2].emoji}${sorted[2].name} ${sorted[2].score}/10 · ${sorted[3].emoji}${sorted[3].name} ${sorted[3].score}/10 · ${bottom.emoji}${bottom.name} ${bottom.score}/10`;
+  return a;
+}
 
-  return analysis;
+function getPersonalityType(sorted) {
+  const top = sorted[0], second = sorted[1];
+  const types = {
+    openness_extraversion: '🌍 探索者型',
+    openness_agreeableness: '🎨 人文创意型',
+    openness_conscientiousness: '🏗️ 理想实践型',
+    conscientiousness_extraversion: '🚀 高效领袖型',
+    conscientiousness_agreeableness: '🛡️ 可靠守护型',
+    conscientiousness_neuroticism: '🧠 完美主义型',
+    extraversion_agreeableness: '🎉 社交温暖型',
+    extraversion_neuroticism: '⚡ 感性表达型',
+    agreeableness_neuroticism: '💧 共情敏感型',
+    openness_neuroticism: '🌙 敏感创造型',
+  };
+  const key = `${top.dim}_${second.dim}`;
+  return types[key] || types[`${second.dim}_${top.dim}`] || '✨ 独特人格型';
+}
+
+function getDimDeepDesc(dim, score) {
+  if (score >= 8) {
+    const high = {
+      openness: '你对新鲜事物有着本能的热情。一本书、一首没听过的歌、一个没去过的城市——都能点燃你。你不是在"猎奇"，你是在用体验来理解世界。这种开放不是浮躁，是对生活在真诚回应。',
+      conscientiousness: '你有一种让人信赖的力量。不是控制欲，而是一种"说到做到"的自我要求。你知道自己要什么，也愿意一步步走过去。偶尔放松一下不是失败，是战略性的充电。',
+      extraversion: '你在人群中充电。社交对你来说不是任务，是能量来源。你能让冷场变热闹，让陌生人变朋友。独处对你来说是修行，但热闹才是你的主场。',
+      agreeableness: '你天生有一副柔软的盔甲——你看到别人的痛苦，也愿意伸出手。不是为了被喜欢，是因为你真的在乎。这种善良不是软弱，是一种深刻的选择。',
+      neuroticism: '你的敏感是你最敏感的雷达。你能捕捉到别人忽略的情绪波动，但也容易把这些信号放大。你的感知力是天赋——学会和它做朋友，而不是对抗它。',
+    };
+    return high[dim] || '这是你最闪耀的维度。';
+  }
+  const mid = {
+    openness: '你对新鲜事物保持适度开放——不排斥新体验，但也不会盲目追逐。这种平衡让你既不会被变化淹没，也不会在舒适区里生锈。',
+    conscientiousness: '你是有弹性的自律者——该认真时不含糊，该放松时也不跟自己较劲。这种游刃有余比极端自律更难。',
+    extraversion: '你在独处和社交之间找到了自己的节奏。不勉强自己热闹，也不拒绝真诚的连接。独处不孤独，社交不消耗——这是很高级的状态。',
+    agreeableness: '你有同理心但也有边界——你知道什么时候该帮忙，什么时候该保护自己的能量。这种平衡比一味讨好或冷漠都难得多。',
+    neuroticism: '你的情绪像一个温和的天气预报——偶尔多云但大部分时候晴朗。你不是没有情绪，而是学会了和它们共处。',
+  };
+  return mid[dim] || '这是你性格中稳定而真实的一面。';
+}
+
+function getLowDesc(dim, score) {
+  if (score <= 3) {
+    const low = {
+      openness: '你偏爱熟悉和可预测的世界。常规不是束缚，是你搭建安全感的砖块。但别忘了偶尔推开窗——外面的风有时候很好闻。',
+      conscientiousness: '你更随性自由，不喜欢被条条框框绑住。生活对你来说是一场即兴表演，而不是一份待办清单。创造力往往在你"不按计划来"的瞬间迸发。',
+      extraversion: '你从独处中汲取能量。安静不是你的弱点，是你的秘密花园。你不是不喜欢人——你只是需要更多时间跟自己待着。',
+      agreeableness: '你有清晰的边界，不轻易妥协。这是你保护自己的方式——不是冷漠，是懂得什么时候说"不"。适当柔软一下，有时候会有惊喜。',
+      neuroticism: '你的情绪像一棵扎根很深的树——风雨动得了枝叶，动不了根。这份稳定是非常珍贵的心理素质，是你在这个动荡世界里的压舱石。',
+    };
+    return low[dim] || '这是你性格中独特的一面。';
+  }
+  return `这是一个中等偏低的得分——你在这方面的特质相对内敛，但不会影响你的整体人格。`;
 }
 
 // Canvas 人格卡片
@@ -108,109 +159,186 @@ async function generateCard(scores, profile, nickname) {
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const ctx = c.getContext('2d');
+  const C = W / 2;
 
   // 深色渐变背景
   const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#0d0815');
-  bgGrad.addColorStop(0.5, '#120a1e');
-  bgGrad.addColorStop(1, '#0a0510');
+  bgGrad.addColorStop(0, '#0a0612');
+  bgGrad.addColorStop(0.4, '#10081e');
+  bgGrad.addColorStop(1, '#080410');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // 顶部光晕
-  const glow = ctx.createRadialGradient(W / 2, 280, 30, W / 2, 280, 500);
-  glow.addColorStop(0, 'rgba(120, 70, 170, 0.12)');
-  glow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glow;
+  // 多层光晕
+  const glow1 = ctx.createRadialGradient(C, 280, 20, C, 280, 550);
+  glow1.addColorStop(0, 'rgba(140,80,200,0.10)');
+  glow1.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow1;
   ctx.fillRect(0, 0, W, H);
 
   // 顶部装饰线
-  ctx.strokeStyle = 'rgba(180,140,220,0.2)';
+  ctx.strokeStyle = 'rgba(180,140,220,0.15)';
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(80, 60);
-  ctx.lineTo(W - 80, 60);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(60, 48); ctx.lineTo(W - 60, 48); ctx.stroke();
 
-  // 用户头像和名字
+  // 头像区域
   const avatarCfg = profile?.avatar ? getAvatarConfigById(profile.avatar) : null;
-  const avatarGrad = ctx.createLinearGradient(W / 2 - 35, 85, W / 2 + 35, 155);
-  avatarGrad.addColorStop(0, avatarCfg?.bg?.[0] || '#6b4fa0');
-  avatarGrad.addColorStop(1, avatarCfg?.bg?.[1] || '#9b7fd4');
+  ctx.save();
+  ctx.shadowColor = 'rgba(160,100,220,0.3)';
+  ctx.shadowBlur = 20;
+  const avatarGrad = ctx.createLinearGradient(C - 30, 78, C + 30, 138);
+  avatarGrad.addColorStop(0, avatarCfg?.bg?.[0] || '#7c3aed');
+  avatarGrad.addColorStop(1, avatarCfg?.bg?.[1] || '#a78bfa');
   ctx.fillStyle = avatarGrad;
   ctx.beginPath();
-  ctx.arc(W / 2, 120, 32, 0, Math.PI * 2);
+  ctx.arc(C, 108, 32, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
   ctx.fillStyle = '#fff';
   ctx.font = '26px serif';
   ctx.textAlign = 'center';
-  ctx.fillText(avatarCfg?.emoji || '👤', W / 2, 130);
+  ctx.fillText(avatarCfg?.emoji || '👤', C, 118);
 
-  const displayName = nickname || '';
-  ctx.fillStyle = 'rgba(230,210,240,0.9)';
+  const displayName = nickname || '我';
+  ctx.fillStyle = 'rgba(235,220,245,0.9)';
   ctx.font = 'bold 20px "PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText(displayName || '我', W / 2, 180);
+  ctx.fillText(displayName, C, 168);
 
-  ctx.fillStyle = 'rgba(200,180,220,0.5)';
-  ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
-  ctx.fillText('内心剧场 · 人格测试', W / 2, 205);
-
-  // 维度条形图
+  // 人格类型标签
   const sorted = Object.entries(scores)
     .map(([k, v]) => ({ dim: k, score: v, ...DIM_LABELS[k] }))
     .sort((a, b) => b.score - a.score);
+  const typeName = getPersonalityType(sorted);
+  ctx.fillStyle = 'rgba(180,140,220,0.5)';
+  ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('内心剧场 · 人格测试', C, 192);
 
-  const barStartY = 245;
-  const barH = 56;
-  const barGap = 15;
-  const barLeftX = 120;
+  // 人格类型大标签
+  ctx.fillStyle = '#c084fc';
+  ctx.font = 'bold 24px "PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(typeName, C, 228);
+
+  // ====== 雷达图 ======
+  const radarCx = C, radarCy = 440, radarR = 130;
+  const dimOrder = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+  const angles = dimOrder.map((_, i) => -Math.PI / 2 + (i / dimOrder.length) * Math.PI * 2);
+
+  // 背景网格
+  for (let level = 2; level <= 10; level += 2) {
+    ctx.strokeStyle = `rgba(180,140,220,${0.04 + level * 0.01})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    angles.forEach((a, i) => {
+      const r = (level / 10) * radarR;
+      const x = radarCx + Math.cos(a) * r;
+      const y = radarCy + Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // 轴线
+  angles.forEach(a => {
+    ctx.strokeStyle = 'rgba(180,140,220,0.10)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(radarCx, radarCy);
+    ctx.lineTo(radarCx + Math.cos(a) * radarR, radarCy + Math.sin(a) * radarR);
+    ctx.stroke();
+  });
+
+  // 数据填充
+  const dataPoints = dimOrder.map((dim, i) => {
+    const score = scores[dim] || 5;
+    const r = (score / 10) * radarR;
+    return { x: radarCx + Math.cos(angles[i]) * r, y: radarCy + Math.sin(angles[i]) * r };
+  });
+
+  ctx.fillStyle = 'rgba(168,139,250,0.15)';
+  ctx.beginPath();
+  dataPoints.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(192,132,252,0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  dataPoints.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.stroke();
+
+  // 数据点
+  dataPoints.forEach(p => {
+    ctx.fillStyle = '#c084fc';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 维度标签
+  dimOrder.forEach((dim, i) => {
+    const labelX = radarCx + Math.cos(angles[i]) * (radarR + 36);
+    const labelY = radarCy + Math.sin(angles[i]) * (radarR + 36);
+    const d = DIM_LABELS[dim];
+    ctx.fillStyle = 'rgba(220,200,240,0.8)';
+    ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(d.emoji, labelX, labelY - 10);
+    ctx.fillStyle = 'rgba(200,180,220,0.6)';
+    ctx.font = '10px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText(`${d.name} ${scores[dim] || 0}`, labelX, labelY + 8);
+  });
+
+  // ====== 底部：分数条 + 简短描述 ======
+  const barStartY = 680;
+  const barH = 40;
+  const barGap = 12;
+  const barLX = 140;
+  const barColors = ['#c084fc', '#a78bfa', '#818cf8', '#7dd3fc', '#67e8f9'];
 
   sorted.forEach((item, i) => {
     const y = barStartY + i * (barH + barGap);
-    const maxBarW = W - barLeftX - 80;
-    const barW = (item.score / 10) * maxBarW;
+    const maxW = W - barLX - 70;
+    const w = (item.score / 10) * maxW;
 
-    // 标签
-    ctx.fillStyle = 'rgba(220,200,240,0.85)';
-    ctx.font = '15px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillStyle = 'rgba(220,200,240,0.75)';
+    ctx.font = '13px "PingFang SC","Microsoft YaHei",sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(`${item.emoji} ${item.name}`, barLeftX - 15, y + 28);
+    ctx.fillText(`${item.emoji} ${item.name}`, barLX - 12, y + 26);
 
-    // 底条
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.beginPath();
-    ctx.roundRect(barLeftX + 10, y, maxBarW, barH, 8);
+    ctx.roundRect(barLX + 5, y, maxW, barH, 6);
     ctx.fill();
 
-    // 得分条
-    const barColors = ['#c084fc', '#a78bfa', '#818cf8', '#7dd3fc', '#67e8f9'];
-    ctx.fillStyle = barColors[i % 5];
+    ctx.fillStyle = barColors[i];
     ctx.beginPath();
-    ctx.roundRect(barLeftX + 10, y, barW, barH, 8);
+    ctx.roundRect(barLX + 5, y, w, barH, 6);
     ctx.fill();
 
-    // 分值
     ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.font = 'bold 14px "PingFang SC","Microsoft YaHei",sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`${item.score}/10`, barLeftX + barW + 15, y + 32);
+    ctx.fillText(`${item.score}/10`, barLX + w + 12, y + 26);
   });
 
-  // 底部说明
-  const bottomY = barStartY + sorted.length * (barH + barGap) + 40;
-  ctx.fillStyle = 'rgba(200,180,220,0.4)';
-  ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
+  // 底部说明 + 二维码
+  const botY = barStartY + 5 * (barH + barGap) + 20;
+  ctx.fillStyle = 'rgba(200,180,220,0.35)';
+  ctx.font = '11px "PingFang SC","Microsoft YaHei",sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('基于大五人格模型 (OCEAN)', W / 2, bottomY);
-  ctx.fillText('这不是标签，是你与世界互动方式的一张快照', W / 2, bottomY + 22);
+  ctx.fillText('基于大五人格模型 OCEAN · 这不是标签，是你与世界互动方式的一张快照', C, botY);
 
-  // 二维码
-  const qrSize = 76;
-  const qrX = W - qrSize - 24;
-  const qrY = H - qrSize - 24;
+  const qrSize = 70, qrX = W - qrSize - 22, qrY = H - qrSize - 20;
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.beginPath();
-  ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 8);
+  ctx.roundRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, 8);
   ctx.fill();
   try {
     const qrDataUrl = await QRCode.toDataURL('https://inner-theater.github.io/1/', { width: qrSize, margin: 1 });
