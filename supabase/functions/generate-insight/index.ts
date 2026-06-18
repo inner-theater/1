@@ -69,7 +69,7 @@ serve(async (req) => {
         break;
 
       case 'parallel-letters':
-        userPrompt = `用户读了不同未来的信。纠结「${context.optionA || ''}」和「${context.optionB || ''}」。他标记了这些句子被触动：${context.highlights || '无'}。请温暖鼓励，不要标题，150字。`;
+        userPrompt = `用户读了不同未来的信。他在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。触动他的句子：${context.highlights || '无'}。请用这两个具体选项来组织你的分析，温暖鼓励，不要标题，200字。`;
         break;
 
       case 'friend-room':
@@ -87,7 +87,7 @@ serve(async (req) => {
         systemPrompt = LETTER_SYS;
         temperature = 0.95;
         maxTokens = 600;
-        userPrompt = `以"${context.year}年后的你"身份写信。选项A：${context.optionA}，B：${context.optionB}。选一个，想象${context.year}年后生活。字数${context.year===1?'200':context.year===3?'300':'400'}字。`;
+        userPrompt = `以"${context.year}年后的你"身份写信。请在「${context.optionA}」和「${context.optionB}」中选一个（随机），想象选择后${context.year}年的具体生活。信中要自然提到这个选项的名字，增加代入感。字数${context.year===1?'200':context.year===3?'300':'400'}字。`;
         break;
 
       case 'generate-questions': {
