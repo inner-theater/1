@@ -35,7 +35,7 @@ async function generatePoster() {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ===== 深邃渐变背景 =====
+  // ===== 深邃背景 =====
   const bg = ctx.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, '#0d0418');
   bg.addColorStop(0.25, '#1a0a2e');
@@ -45,230 +45,200 @@ async function generatePoster() {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // 星星点缀（只在下半部分）
+  // 星星点缀
   for (let i = 0; i < 50; i++) {
     const sx = Math.random() * W;
     const sy = 650 + Math.random() * (H - 650);
-    const so = 0.1 + Math.random() * 0.4;
-    ctx.fillStyle = `rgba(255,255,255,${so})`;
+    ctx.fillStyle = `rgba(255,255,255,${0.1 + Math.random() * 0.35})`;
     ctx.beginPath();
     ctx.arc(sx, sy, 0.6 + Math.random() * 1.2, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // ===== 顶部红色幕布（截图风格） =====
+  // ===== 尖顶三角形幕布（完全匹配截图） =====
   ctx.save();
-
-  // 主幕布渐变 - 深红到暗紫
-  const curtainGrad = ctx.createLinearGradient(0, 0, 0, 500);
+  const curtainGrad = ctx.createLinearGradient(0, 0, 0, 420);
   curtainGrad.addColorStop(0, '#8b0018');
-  curtainGrad.addColorStop(0.15, '#6b0010');
-  curtainGrad.addColorStop(0.35, '#4a0008');
-  curtainGrad.addColorStop(0.6, '#2a0010');
-  curtainGrad.addColorStop(0.85, 'rgba(15,5,30,0.7)');
+  curtainGrad.addColorStop(0.2, '#6b0010');
+  curtainGrad.addColorStop(0.45, '#4a0008');
+  curtainGrad.addColorStop(0.7, '#2a0010');
+  curtainGrad.addColorStop(0.9, 'rgba(15,5,30,0.6)');
   curtainGrad.addColorStop(1, 'rgba(10,2,24,0)');
   ctx.fillStyle = curtainGrad;
 
-  // 左侧幕布 - 大波浪褶皱
+  // 左幕布 - 尖三角
   ctx.beginPath();
   ctx.moveTo(0, 0);
-  ctx.lineTo(400, 0);
-  ctx.quadraticCurveTo(350, 180, 380, 320);
-  ctx.quadraticCurveTo(300, 260, 320, 180);
-  ctx.quadraticCurveTo(280, 120, 300, 60);
-  ctx.quadraticCurveTo(200, 100, 0, 380);
+  ctx.lineTo(380, 0);
+  ctx.lineTo(0, 320);
   ctx.closePath();
   ctx.fill();
 
-  // 右侧幕布 - 对称波浪
+  // 右幕布 - 尖三角
   ctx.beginPath();
   ctx.moveTo(W, 0);
-  ctx.lineTo(W - 400, 0);
-  ctx.quadraticCurveTo(W - 350, 180, W - 380, 320);
-  ctx.quadraticCurveTo(W - 300, 260, W - 320, 180);
-  ctx.quadraticCurveTo(W - 280, 120, W - 300, 60);
-  ctx.quadraticCurveTo(W - 200, 100, W, 380);
+  ctx.lineTo(W - 380, 0);
+  ctx.lineTo(W, 320);
   ctx.closePath();
   ctx.fill();
 
-  // 幕布内侧深色褶皱
-  ctx.fillStyle = 'rgba(60,0,15,0.4)';
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(120, 200, 60, 400);
-  ctx.quadraticCurveTo(180, 280, 120, 160);
-  ctx.quadraticCurveTo(100, 100, 0, 200);
-  ctx.closePath();
-  ctx.fill();
+  // ===== 金色椭圆点 —— 跳动的旋律 =====
+  // 分布在标题上方，中间高两边低，像声波
+  const melodyY = 230; // 点排的基线
+  const melodyCount = 27;
+  const melodySpan = W - 120;
 
-  ctx.beginPath();
-  ctx.moveTo(W, 0);
-  ctx.quadraticCurveTo(W - 120, 200, W - 60, 400);
-  ctx.quadraticCurveTo(W - 180, 280, W - 120, 160);
-  ctx.quadraticCurveTo(W - 100, 100, W, 200);
-  ctx.closePath();
-  ctx.fill();
+  for (let i = 0; i < melodyCount; i++) {
+    const t = i / (melodyCount - 1); // 0..1
+    const mx = 60 + t * melodySpan;
+    // 中间隆起，两边下沉 - 拱形
+    const waveOffset = -Math.sin(t * Math.PI) * 28;
+    const my = melodyY + waveOffset;
+    // 中间点大，两边小
+    const mw = 14 + Math.sin(t * Math.PI) * 10;
+    const mh = 8 + Math.sin(t * Math.PI) * 5;
 
-  // 金色装饰点 - 截图中的那一排圆点
-  ctx.fillStyle = 'rgba(201,168,76,0.6)';
-  for (let i = 0; i < 28; i++) {
-    const tx = 60 + i * 23;
-    const ty = 245 + Math.sin(i * 0.5) * 5;
-    const tw = 10 + Math.sin(i * 0.8) * 3;
+    ctx.fillStyle = `rgba(201,168,76,${0.3 + Math.sin(t * Math.PI) * 0.35})`;
     ctx.beginPath();
-    ctx.ellipse(tx, ty, tw, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(mx, my, mw, mh, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
   ctx.restore();
 
-  // ===== 聚光灯效果 =====
+  // ===== 聚光灯 =====
   for (let i = 0; i < 3; i++) {
     const lx = 180 + i * 195;
-    const spotGrad = ctx.createLinearGradient(0, 280, 0, 900);
-    spotGrad.addColorStop(0, 'rgba(255,240,200,0.08)');
-    spotGrad.addColorStop(0.15, 'rgba(255,240,200,0.04)');
-    spotGrad.addColorStop(1, 'rgba(255,240,200,0)');
+    const spotGrad = ctx.createLinearGradient(0, 280, 0, 850);
+    spotGrad.addColorStop(0, 'rgba(255,240,210,0.07)');
+    spotGrad.addColorStop(0.2, 'rgba(255,240,210,0.03)');
+    spotGrad.addColorStop(1, 'rgba(255,240,210,0)');
     ctx.fillStyle = spotGrad;
     ctx.beginPath();
-    ctx.moveTo(lx - 120, 280);
-    ctx.lineTo(lx - 5, 900);
-    ctx.lineTo(lx + 5, 900);
-    ctx.lineTo(lx + 120, 280);
+    ctx.moveTo(lx - 120, 270);
+    ctx.lineTo(lx - 5, 850);
+    ctx.lineTo(lx + 5, 850);
+    ctx.lineTo(lx + 120, 270);
     ctx.closePath();
     ctx.fill();
   }
 
-  // ===== 标题区域 =====
-  ctx.textAlign = 'center';
+  // ===== 标题区光晕 =====
+  const titleGlow = ctx.createRadialGradient(W / 2, 340, 25, W / 2, 340, 240);
+  titleGlow.addColorStop(0, 'rgba(232,212,139,0.14)');
+  titleGlow.addColorStop(0.5, 'rgba(168,100,200,0.05)');
+  titleGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = titleGlow;
+  ctx.fillRect(W / 2 - 250, 200, 500, 300);
 
-  // 装饰横线 - 金色渐变
+  // ===== 装饰横线 =====
+  ctx.textAlign = 'center';
   const lineGrad = ctx.createLinearGradient(W / 2 - 140, 0, W / 2 + 140, 0);
   lineGrad.addColorStop(0, 'transparent');
   lineGrad.addColorStop(0.3, 'rgba(201,168,76,0.3)');
-  lineGrad.addColorStop(0.5, 'rgba(232,212,139,0.5)');
+  lineGrad.addColorStop(0.5, 'rgba(232,212,139,0.45)');
   lineGrad.addColorStop(0.7, 'rgba(201,168,76,0.3)');
   lineGrad.addColorStop(1, 'transparent');
   ctx.strokeStyle = lineGrad;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(W / 2 - 140, 305);
-  ctx.lineTo(W / 2 + 140, 305);
+  ctx.moveTo(W / 2 - 140, 292);
+  ctx.lineTo(W / 2 + 140, 292);
   ctx.stroke();
 
-  // 标题光晕
-  const titleGlow = ctx.createRadialGradient(W / 2, 340, 30, W / 2, 340, 200);
-  titleGlow.addColorStop(0, 'rgba(232,212,139,0.15)');
-  titleGlow.addColorStop(0.4, 'rgba(168,100,200,0.06)');
-  titleGlow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = titleGlow;
-  ctx.fillRect(W / 2 - 200, 220, 400, 280);
+  // 装饰小圆点
+  ctx.fillStyle = 'rgba(201,168,76,0.5)';
+  ctx.beginPath(); ctx.arc(W / 2 - 150, 290, 3.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W / 2 + 150, 290, 3.5, 0, Math.PI * 2); ctx.fill();
 
-  // 主标题
+  // ===== 标题 =====
   ctx.fillStyle = '#e8d48b';
-  ctx.font = 'bold 62px "Noto Serif SC", "SimSun", serif';
-  ctx.fillText('内心剧场', W / 2, 360);
+  ctx.font = 'bold 60px "Noto Serif SC", "SimSun", serif';
+  ctx.fillText('内心剧场', W / 2, 350);
 
   // 英文副标题
-  ctx.fillStyle = 'rgba(232,212,139,0.4)';
-  ctx.font = 'italic 16px "Playfair Display", serif';
-  ctx.fillText('THE INNER THEATER', W / 2, 395);
+  ctx.fillStyle = 'rgba(232,212,139,0.35)';
+  ctx.font = 'italic 15px "Playfair Display", serif';
+  ctx.fillText('THE INNER THEATER', W / 2, 388);
 
-  // 装饰点
-  ctx.fillStyle = 'rgba(201,168,76,0.5)';
-  ctx.beginPath(); ctx.arc(W / 2 - 155, 305, 4, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(W / 2 + 155, 305, 4, 0, Math.PI * 2); ctx.fill();
-
-  // 分隔线2
+  // ===== Slogan 区 =====
+  // 第二道装饰线
   ctx.strokeStyle = lineGrad;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(W / 2 - 100, 425);
-  ctx.lineTo(W / 2 + 100, 425);
+  ctx.moveTo(W / 2 - 100, 418);
+  ctx.lineTo(W / 2 + 100, 418);
   ctx.stroke();
 
-  // Slogan
   ctx.fillStyle = '#f5e6d3';
   ctx.font = '18px "Noto Sans SC", sans-serif';
-  ctx.fillText('听见你心底的声音', W / 2, 460);
+  ctx.fillText('听见你心底的声音', W / 2, 455);
 
   // 简介
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fillStyle = 'rgba(255,255,255,0.42)';
   ctx.font = '13px "Noto Sans SC", sans-serif';
-  ctx.fillText('一个为年轻人设计的决策辅助工具', W / 2, 510);
-  ctx.fillText('5个心理剧场，帮你听见自己心底早已存在的答案', W / 2, 535);
+  ctx.fillText('5个心理剧场 · 帮你听见自己心底早已存在的答案', W / 2, 510);
 
-  // ===== 五大剧场 =====
-  const sectionTop = 600;
+  // ===== 五大剧场卡片 =====
+  const sectionTop = 570;
 
-  // 分隔装饰
-  ctx.strokeStyle = 'rgba(201,168,76,0.15)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - 80, sectionTop);
-  ctx.lineTo(W / 2 - 10, sectionTop);
-  ctx.moveTo(W / 2 + 10, sectionTop);
-  ctx.lineTo(W / 2 + 80, sectionTop);
-  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  ctx.font = '13px "Noto Serif SC", serif';
+  ctx.fillText('··· 五大剧场 ···', W / 2, sectionTop + 10);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '12px "Noto Serif SC", serif';
-  ctx.fillText('五大剧场', W / 2, sectionTop + 4);
-
-  // 卡片参数 - 单列，更宽
-  const cardW = 580, cardH = 64;
-  const cardStartY = sectionTop + 45;
-  const gapY = 16;
+  const cardW = 580, cardH = 66;
+  const cardStartY = sectionTop + 48;
+  const gapY = 18;
   const cardX = (W - cardW) / 2;
 
   GAMES.forEach((g, i) => {
     const cy = cardStartY + i * (cardH + gapY);
 
-    // Card bg - 半透明深色
-    ctx.fillStyle = 'rgba(30,15,60,0.55)';
+    // Card bg
+    ctx.fillStyle = 'rgba(30,15,60,0.5)';
     ctx.strokeStyle = 'rgba(201,168,76,0.1)';
     ctx.lineWidth = 1;
     drawCard(ctx, cardX, cy, cardW, cardH, 12);
 
-    // 左侧金色细线
-    ctx.fillStyle = 'rgba(201,168,76,0.3)';
+    // Left accent
+    ctx.fillStyle = 'rgba(201,168,76,0.28)';
     ctx.fillRect(cardX, cy, 3, cardH);
 
-    // 图标背景圆
-    ctx.fillStyle = 'rgba(201,168,76,0.08)';
+    // Icon bg
+    ctx.fillStyle = 'rgba(201,168,76,0.07)';
     ctx.beginPath();
-    ctx.arc(cardX + 44, cy + cardH / 2, 20, 0, Math.PI * 2);
+    ctx.arc(cardX + 46, cy + cardH / 2, 20, 0, Math.PI * 2);
     ctx.fill();
 
     // Icon
     ctx.font = '26px sans-serif';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.fillText(g.icon, cardX + 44, cy + cardH / 2 + 9);
+    ctx.fillText(g.icon, cardX + 46, cy + cardH / 2 + 9);
 
     // Name
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e8d48b';
     ctx.font = 'bold 16px "Noto Sans SC", sans-serif';
-    ctx.fillText(g.name, cardX + 78, cy + 24);
+    ctx.fillText(g.name, cardX + 80, cy + 24);
 
-    // Tag - 右侧
-    ctx.fillStyle = 'rgba(201,168,76,0.6)';
+    // Tag
+    ctx.fillStyle = 'rgba(201,168,76,0.55)';
     ctx.font = '11px "Noto Sans SC", sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(g.tag, cardX + cardW - 20, cy + 24);
 
     // Desc
-    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.fillStyle = 'rgba(255,255,255,0.36)';
     ctx.font = '12px "Noto Sans SC", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(g.desc, cardX + 78, cy + 46);
+    ctx.fillText(g.desc, cardX + 80, cy + 48);
   });
 
   // ===== QR Code =====
+  ctx.textAlign = 'center';
   const qrTop = cardStartY + 5 * (cardH + gapY) + 55;
 
-  ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.font = '13px "Noto Serif SC", serif';
   ctx.fillText('———  扫码进入内心剧场  ———', W / 2, qrTop);
@@ -277,20 +247,10 @@ async function generatePoster() {
   const qrX = W / 2 - qrSize / 2;
   const qrCardY = qrTop + 20;
 
-  // QR 背景
   ctx.fillStyle = 'rgba(245,235,215,0.96)';
   ctx.beginPath();
   ctx.roundRect(qrX - 16, qrCardY - 16, qrSize + 32, qrSize + 32, 14);
   ctx.fill();
-
-  // 阴影
-  ctx.shadowColor = 'rgba(0,0,0,0.3)';
-  ctx.shadowBlur = 20;
-  ctx.shadowOffsetY = 8;
-  ctx.fill();
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetY = 0;
 
   const qrDataUrl = await QRCode.toDataURL(SITE_URL, {
     width: qrSize, margin: 2,
@@ -299,7 +259,6 @@ async function generatePoster() {
   const qrImg = await loadImage(qrDataUrl);
   ctx.drawImage(qrImg, qrX, qrCardY, qrSize, qrSize);
 
-  // QR 文字
   ctx.fillStyle = '#2a2020';
   ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
   ctx.fillText('微信扫码即可进入', W / 2, qrCardY + qrSize + 32);
@@ -310,13 +269,9 @@ async function generatePoster() {
 
   // ===== 底部 =====
   const footerY = H - 120;
-
   ctx.strokeStyle = 'rgba(201,168,76,0.12)';
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(140, footerY);
-  ctx.lineTo(W - 140, footerY);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(140, footerY); ctx.lineTo(W - 140, footerY); ctx.stroke();
 
   ctx.fillStyle = 'rgba(201,168,76,0.45)';
   ctx.font = '14px "Noto Serif SC", serif';
