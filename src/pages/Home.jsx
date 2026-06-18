@@ -111,7 +111,7 @@ export default function Home() {
         const actGames = games.filter((g) => {
           if (actIndex === 0) return ['/game/instinct-hand', '/game/reverse-fear'].includes(g.path);
           if (actIndex === 1) return ['/game/parallel-letters', '/game/friend-room'].includes(g.path);
-          return ['/game/value-auction'].includes(g.path);
+          return ['/game/value-auction', '/game/personality-test'].includes(g.path);
         });
 
         return (
