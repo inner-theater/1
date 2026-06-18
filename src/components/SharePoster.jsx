@@ -29,250 +29,268 @@ function drawCard(ctx, x, y, w, h, r) {
   ctx.stroke();
 }
 
-function drawDiamond(ctx, cx, cy, size, color) {
-  ctx.save();
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - size);
-  ctx.lineTo(cx + size * 0.6, cy);
-  ctx.lineTo(cx, cy + size);
-  ctx.lineTo(cx - size * 0.6, cy);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
 async function generatePoster() {
-  const W = 750, H = 1400;
+  const W = 750, H = 1450;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ===== 深紫渐变背景 =====
+  // ===== 深邃渐变背景 =====
   const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#0a0218');
-  bg.addColorStop(0.3, '#150a28');
-  bg.addColorStop(0.6, '#1e1038');
-  bg.addColorStop(1, '#0a0218');
+  bg.addColorStop(0, '#0d0418');
+  bg.addColorStop(0.25, '#1a0a2e');
+  bg.addColorStop(0.55, '#150828');
+  bg.addColorStop(0.8, '#0d0418');
+  bg.addColorStop(1, '#080210');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // 星星点缀
-  for (let i = 0; i < 40; i++) {
+  // 星星点缀（只在下半部分）
+  for (let i = 0; i < 50; i++) {
     const sx = Math.random() * W;
-    const sy = 620 + Math.random() * (H - 620);
-    ctx.fillStyle = `rgba(255,255,255,${0.15 + Math.random() * 0.3})`;
+    const sy = 650 + Math.random() * (H - 650);
+    const so = 0.1 + Math.random() * 0.4;
+    ctx.fillStyle = `rgba(255,255,255,${so})`;
     ctx.beginPath();
-    ctx.arc(sx, sy, 0.5 + Math.random() * 1.5, 0, Math.PI * 2);
+    ctx.arc(sx, sy, 0.6 + Math.random() * 1.2, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // ===== 顶部剧场幕布（复古红色+褶皱） =====
+  // ===== 顶部红色幕布（截图风格） =====
   ctx.save();
-  const curtainGrad = ctx.createLinearGradient(0, 0, 0, 340);
-  curtainGrad.addColorStop(0, '#6b0000');
-  curtainGrad.addColorStop(0.4, '#4a0000');
-  curtainGrad.addColorStop(0.7, '#2a0010');
+
+  // 主幕布渐变 - 深红到暗紫
+  const curtainGrad = ctx.createLinearGradient(0, 0, 0, 500);
+  curtainGrad.addColorStop(0, '#8b0018');
+  curtainGrad.addColorStop(0.15, '#6b0010');
+  curtainGrad.addColorStop(0.35, '#4a0008');
+  curtainGrad.addColorStop(0.6, '#2a0010');
+  curtainGrad.addColorStop(0.85, 'rgba(15,5,30,0.7)');
   curtainGrad.addColorStop(1, 'rgba(10,2,24,0)');
   ctx.fillStyle = curtainGrad;
 
-  // Left curtain drape
+  // 左侧幕布 - 大波浪褶皱
   ctx.beginPath();
   ctx.moveTo(0, 0);
-  ctx.lineTo(370, 0);
-  for (let i = 0; i < 16; i++) {
-    const t = i / 15;
-    ctx.lineTo(370 * t, 260 + Math.sin(t * Math.PI * 2.8) * 55 * (1 - t * 0.7));
-  }
-  ctx.lineTo(0, 340);
+  ctx.lineTo(400, 0);
+  ctx.quadraticCurveTo(350, 180, 380, 320);
+  ctx.quadraticCurveTo(300, 260, 320, 180);
+  ctx.quadraticCurveTo(280, 120, 300, 60);
+  ctx.quadraticCurveTo(200, 100, 0, 380);
   ctx.closePath();
   ctx.fill();
 
-  // Right curtain drape
+  // 右侧幕布 - 对称波浪
   ctx.beginPath();
   ctx.moveTo(W, 0);
-  ctx.lineTo(W - 370, 0);
-  for (let i = 16; i >= 0; i--) {
-    const t = i / 15;
-    ctx.lineTo(W - 370 + 370 * (1 - t), 260 + Math.sin(t * Math.PI * 2.8) * 55 * (1 - t * 0.7));
-  }
-  ctx.lineTo(W, 340);
+  ctx.lineTo(W - 400, 0);
+  ctx.quadraticCurveTo(W - 350, 180, W - 380, 320);
+  ctx.quadraticCurveTo(W - 300, 260, W - 320, 180);
+  ctx.quadraticCurveTo(W - 280, 120, W - 300, 60);
+  ctx.quadraticCurveTo(W - 200, 100, W, 380);
   ctx.closePath();
   ctx.fill();
 
-  // Left inner fold
+  // 幕布内侧深色褶皱
+  ctx.fillStyle = 'rgba(60,0,15,0.4)';
   ctx.beginPath();
   ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(80, 180, 0, 300);
-  ctx.quadraticCurveTo(140, 220, 0, 180);
-  ctx.quadraticCurveTo(100, 120, 0, 80);
+  ctx.quadraticCurveTo(120, 200, 60, 400);
+  ctx.quadraticCurveTo(180, 280, 120, 160);
+  ctx.quadraticCurveTo(100, 100, 0, 200);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(80,0,20,0.45)';
   ctx.fill();
 
-  // Right inner fold
   ctx.beginPath();
   ctx.moveTo(W, 0);
-  ctx.quadraticCurveTo(W - 80, 180, W, 300);
-  ctx.quadraticCurveTo(W - 140, 220, W, 180);
-  ctx.quadraticCurveTo(W - 100, 120, W, 80);
+  ctx.quadraticCurveTo(W - 120, 200, W - 60, 400);
+  ctx.quadraticCurveTo(W - 180, 280, W - 120, 160);
+  ctx.quadraticCurveTo(W - 100, 100, W, 200);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(80,0,20,0.45)';
   ctx.fill();
 
-  // Golden tassels
-  for (let i = 0; i < 34; i++) {
-    const x = 40 + i * 20;
-    const waveY = 300 + Math.sin(i * 0.65) * 10;
-    ctx.strokeStyle = `rgba(201,168,76,${0.2 + Math.sin(i * 0.45) * 0.1})`;
-    ctx.lineWidth = 1.5;
+  // 金色装饰点 - 截图中的那一排圆点
+  ctx.fillStyle = 'rgba(201,168,76,0.6)';
+  for (let i = 0; i < 28; i++) {
+    const tx = 60 + i * 23;
+    const ty = 245 + Math.sin(i * 0.5) * 5;
+    const tw = 10 + Math.sin(i * 0.8) * 3;
     ctx.beginPath();
-    ctx.moveTo(x, waveY);
-    ctx.quadraticCurveTo(x + (Math.random() - 0.5) * 6, waveY + 10, x + (Math.random() - 0.5) * 8, waveY + 18 + Math.random() * 10);
-    ctx.stroke();
+    ctx.ellipse(tx, ty, tw, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
+
   ctx.restore();
 
   // ===== 聚光灯效果 =====
   for (let i = 0; i < 3; i++) {
-    const lx = 200 + i * 175;
-    const spotGrad = ctx.createLinearGradient(0, 0, 0, 650);
-    spotGrad.addColorStop(0, 'rgba(255,255,210,0.07)');
-    spotGrad.addColorStop(0.2, 'rgba(255,255,210,0.035)');
-    spotGrad.addColorStop(1, 'rgba(255,255,210,0)');
+    const lx = 180 + i * 195;
+    const spotGrad = ctx.createLinearGradient(0, 280, 0, 900);
+    spotGrad.addColorStop(0, 'rgba(255,240,200,0.08)');
+    spotGrad.addColorStop(0.15, 'rgba(255,240,200,0.04)');
+    spotGrad.addColorStop(1, 'rgba(255,240,200,0)');
     ctx.fillStyle = spotGrad;
     ctx.beginPath();
-    ctx.moveTo(lx - 110, 310);
-    ctx.lineTo(lx - 4, 960);
-    ctx.lineTo(lx + 4, 960);
-    ctx.lineTo(lx + 110, 310);
+    ctx.moveTo(lx - 120, 280);
+    ctx.lineTo(lx - 5, 900);
+    ctx.lineTo(lx + 5, 900);
+    ctx.lineTo(lx + 120, 280);
     ctx.closePath();
     ctx.fill();
   }
 
-  // ===== 装饰框 =====
-  ctx.strokeStyle = 'rgba(201,168,76,0.22)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(40, 40, W - 80, H - 80);
-  ctx.strokeStyle = 'rgba(201,168,76,0.08)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(60, 60, W - 120, H - 120);
+  // ===== 标题区域 =====
+  ctx.textAlign = 'center';
 
-  // ===== 标题区光晕 =====
-  const titleBgGlow = ctx.createRadialGradient(W / 2, 400, 30, W / 2, 400, 280);
-  titleBgGlow.addColorStop(0, 'rgba(168,85,247,0.18)');
-  titleBgGlow.addColorStop(1, 'rgba(168,85,247,0)');
-  ctx.fillStyle = titleBgGlow;
-  ctx.fillRect(W / 2 - 280, 220, 560, 360);
-
-  // 装饰线
-  ctx.strokeStyle = 'rgba(201,168,76,0.3)';
-  ctx.lineWidth = 1;
+  // 装饰横线 - 金色渐变
+  const lineGrad = ctx.createLinearGradient(W / 2 - 140, 0, W / 2 + 140, 0);
+  lineGrad.addColorStop(0, 'transparent');
+  lineGrad.addColorStop(0.3, 'rgba(201,168,76,0.3)');
+  lineGrad.addColorStop(0.5, 'rgba(232,212,139,0.5)');
+  lineGrad.addColorStop(0.7, 'rgba(201,168,76,0.3)');
+  lineGrad.addColorStop(1, 'transparent');
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(W / 2 - 160, 415);
-  ctx.lineTo(W / 2 + 160, 415);
+  ctx.moveTo(W / 2 - 140, 305);
+  ctx.lineTo(W / 2 + 140, 305);
   ctx.stroke();
 
-  ctx.fillStyle = 'rgba(201,168,76,0.4)';
-  ctx.beginPath(); ctx.arc(W / 2 - 180, 410, 3, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(W / 2 + 180, 410, 3, 0, Math.PI * 2); ctx.fill();
+  // 标题光晕
+  const titleGlow = ctx.createRadialGradient(W / 2, 340, 30, W / 2, 340, 200);
+  titleGlow.addColorStop(0, 'rgba(232,212,139,0.15)');
+  titleGlow.addColorStop(0.4, 'rgba(168,100,200,0.06)');
+  titleGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = titleGlow;
+  ctx.fillRect(W / 2 - 200, 220, 400, 280);
 
-  // ===== 大标题 =====
-  ctx.textAlign = 'center';
+  // 主标题
   ctx.fillStyle = '#e8d48b';
-  ctx.font = 'bold 58px "Noto Serif SC", "SimSun", serif';
-  ctx.fillText('内心剧场', W / 2, 380);
+  ctx.font = 'bold 62px "Noto Serif SC", "SimSun", serif';
+  ctx.fillText('内心剧场', W / 2, 360);
 
-  ctx.fillStyle = 'rgba(232,212,139,0.35)';
-  ctx.font = 'italic 15px "Playfair Display", serif';
-  ctx.fillText('THE INNER THEATER', W / 2, 440);
+  // 英文副标题
+  ctx.fillStyle = 'rgba(232,212,139,0.4)';
+  ctx.font = 'italic 16px "Playfair Display", serif';
+  ctx.fillText('THE INNER THEATER', W / 2, 395);
+
+  // 装饰点
+  ctx.fillStyle = 'rgba(201,168,76,0.5)';
+  ctx.beginPath(); ctx.arc(W / 2 - 155, 305, 4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W / 2 + 155, 305, 4, 0, Math.PI * 2); ctx.fill();
+
+  // 分隔线2
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 100, 425);
+  ctx.lineTo(W / 2 + 100, 425);
+  ctx.stroke();
 
   // Slogan
   ctx.fillStyle = '#f5e6d3';
-  ctx.font = '17px "Noto Sans SC", sans-serif';
-  ctx.fillText('听见你心底的声音', W / 2, 485);
+  ctx.font = '18px "Noto Sans SC", sans-serif';
+  ctx.fillText('听见你心底的声音', W / 2, 460);
 
-  drawDiamond(ctx, W / 2, 520, 6, 'rgba(201,168,76,0.35)');
-
-  // ===== 一句话介绍 =====
-  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  // 简介
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.font = '13px "Noto Sans SC", sans-serif';
-  ctx.fillText('5个心理剧场 · 用游戏的方式做重要决定', W / 2, 555);
-  ctx.fillText('不是替你选择，是帮你听见自己', W / 2, 580);
+  ctx.fillText('一个为年轻人设计的决策辅助工具', W / 2, 510);
+  ctx.fillText('5个心理剧场，帮你听见自己心底早已存在的答案', W / 2, 535);
 
-  // ===== 五大剧场卡片 =====
-  const sectionTop = 630;
-  drawDiamond(ctx, W / 2, sectionTop, 5, 'rgba(201,168,76,0.2)');
+  // ===== 五大剧场 =====
+  const sectionTop = 600;
 
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  // 分隔装饰
+  ctx.strokeStyle = 'rgba(201,168,76,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - 80, sectionTop);
+  ctx.lineTo(W / 2 - 10, sectionTop);
+  ctx.moveTo(W / 2 + 10, sectionTop);
+  ctx.lineTo(W / 2 + 80, sectionTop);
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.font = '12px "Noto Serif SC", serif';
-  ctx.fillText('··· 五大剧场 ···', W / 2, sectionTop + 22);
+  ctx.fillText('五大剧场', W / 2, sectionTop + 4);
 
-  // Card params
-  const cardW = 560, cardH = 56;
-  const cardStartY = sectionTop + 55;
-  const gapY = 18;
+  // 卡片参数 - 单列，更宽
+  const cardW = 580, cardH = 64;
+  const cardStartY = sectionTop + 45;
+  const gapY = 16;
   const cardX = (W - cardW) / 2;
 
   GAMES.forEach((g, i) => {
     const cy = cardStartY + i * (cardH + gapY);
 
-    // Card bg
-    ctx.fillStyle = 'rgba(22,12,48,0.65)';
+    // Card bg - 半透明深色
+    ctx.fillStyle = 'rgba(30,15,60,0.55)';
     ctx.strokeStyle = 'rgba(201,168,76,0.1)';
     ctx.lineWidth = 1;
-    drawCard(ctx, cardX, cy, cardW, cardH, 10);
+    drawCard(ctx, cardX, cy, cardW, cardH, 12);
 
-    // Left accent
-    ctx.fillStyle = 'rgba(201,168,76,0.25)';
+    // 左侧金色细线
+    ctx.fillStyle = 'rgba(201,168,76,0.3)';
     ctx.fillRect(cardX, cy, 3, cardH);
 
-    // Icon bg circle
-    ctx.fillStyle = 'rgba(201,168,76,0.07)';
+    // 图标背景圆
+    ctx.fillStyle = 'rgba(201,168,76,0.08)';
     ctx.beginPath();
-    ctx.arc(cardX + 40, cy + cardH / 2, 17, 0, Math.PI * 2);
+    ctx.arc(cardX + 44, cy + cardH / 2, 20, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = '22px sans-serif';
+    // Icon
+    ctx.font = '26px sans-serif';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.fillText(g.icon, cardX + 40, cy + cardH / 2 + 8);
+    ctx.fillText(g.icon, cardX + 44, cy + cardH / 2 + 9);
 
-    // Name + tag
+    // Name
     ctx.textAlign = 'left';
     ctx.fillStyle = '#e8d48b';
-    ctx.font = 'bold 15px "Noto Sans SC", sans-serif';
-    ctx.fillText(g.name, cardX + 68, cy + 20);
+    ctx.font = 'bold 16px "Noto Sans SC", sans-serif';
+    ctx.fillText(g.name, cardX + 78, cy + 24);
 
-    ctx.fillStyle = 'rgba(201,168,76,0.55)';
+    // Tag - 右侧
+    ctx.fillStyle = 'rgba(201,168,76,0.6)';
     ctx.font = '11px "Noto Sans SC", sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(g.tag, cardX + cardW - 16, cy + 20);
+    ctx.fillText(g.tag, cardX + cardW - 20, cy + 24);
 
     // Desc
-    ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.font = '11px "Noto Sans SC", sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.font = '12px "Noto Sans SC", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(g.desc, cardX + 68, cy + 40);
+    ctx.fillText(g.desc, cardX + 78, cy + 46);
   });
 
   // ===== QR Code =====
-  ctx.textAlign = 'center';
-  const qrTop = cardStartY + 5 * (cardH + gapY) + 60;
+  const qrTop = cardStartY + 5 * (cardH + gapY) + 55;
 
-  drawDiamond(ctx, W / 2, qrTop - 5, 5, 'rgba(201,168,76,0.2)');
-  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.font = '13px "Noto Serif SC", serif';
-  ctx.fillText('———  扫码进入  ———', W / 2, qrTop + 14);
+  ctx.fillText('———  扫码进入内心剧场  ———', W / 2, qrTop);
 
   const qrSize = 200;
   const qrX = W / 2 - qrSize / 2;
-  const qrCardY = qrTop + 32;
+  const qrCardY = qrTop + 20;
 
-  ctx.fillStyle = 'rgba(245,235,215,0.95)';
+  // QR 背景
+  ctx.fillStyle = 'rgba(245,235,215,0.96)';
   ctx.beginPath();
-  ctx.roundRect(qrX - 18, qrCardY - 18, qrSize + 36, qrSize + 36, 16);
+  ctx.roundRect(qrX - 16, qrCardY - 16, qrSize + 32, qrSize + 32, 14);
   ctx.fill();
+
+  // 阴影
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 8;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 
   const qrDataUrl = await QRCode.toDataURL(SITE_URL, {
     width: qrSize, margin: 2,
@@ -281,28 +299,33 @@ async function generatePoster() {
   const qrImg = await loadImage(qrDataUrl);
   ctx.drawImage(qrImg, qrX, qrCardY, qrSize, qrSize);
 
-  ctx.fillStyle = '#333';
+  // QR 文字
+  ctx.fillStyle = '#2a2020';
   ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
-  ctx.fillText('微信扫码即可进入', W / 2, qrCardY + qrSize + 30);
+  ctx.fillText('微信扫码即可进入', W / 2, qrCardY + qrSize + 32);
 
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.font = '11px sans-serif';
   ctx.fillText('inner-theater.github.io/1', W / 2, qrCardY + qrSize + 52);
 
   // ===== 底部 =====
-  const footerY = H - 110;
+  const footerY = H - 120;
+
   ctx.strokeStyle = 'rgba(201,168,76,0.12)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(150, footerY); ctx.lineTo(W - 150, footerY); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(140, footerY);
+  ctx.lineTo(W - 140, footerY);
+  ctx.stroke();
 
   ctx.fillStyle = 'rgba(201,168,76,0.45)';
   ctx.font = '14px "Noto Serif SC", serif';
   ctx.fillText('不为你的纠结提供答案', W / 2, footerY + 32);
-  ctx.fillText('而是帮你听见自己心底早已存在的声音', W / 2, footerY + 56);
+  ctx.fillText('而是帮你听见自己心底早已存在的声音', W / 2, footerY + 58);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.16)';
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
   ctx.font = '10px sans-serif';
-  ctx.fillText('THE INNER THEATER · 每个人内心都有一座剧场', W / 2, footerY + 82);
+  ctx.fillText('THE INNER THEATER · 每个人内心都有一座剧场', W / 2, footerY + 86);
 
   return canvas.toDataURL('image/png');
 }
