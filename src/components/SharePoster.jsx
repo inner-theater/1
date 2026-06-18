@@ -4,8 +4,6 @@ import QRCode from 'qrcode';
 
 const SITE_URL = 'https://inner-theater.github.io/1/';
 
-// 不再依赖外部图片，所有视觉元素 Canvas 手绘，保证质量和无水印
-
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -39,161 +37,148 @@ async function generatePoster() {
   const C = W / 2;
 
   // ============ 背景 ============
-  // 深蓝-黑渐变，电影院般的底色
-  const bgGrad = ctx.createRadialGradient(C, H * 0.38, 20, C, H * 0.45, W * 1.2);
-  bgGrad.addColorStop(0, '#1a1e2e');
-  bgGrad.addColorStop(0.45, '#0e101a');
-  bgGrad.addColorStop(1, '#050508');
+  // 深黑到深蓝黑的径向渐变
+  const bgGrad = ctx.createRadialGradient(C, H * 0.35, 50, C, H * 0.5, W);
+  bgGrad.addColorStop(0, '#1a1510');
+  bgGrad.addColorStop(0.4, '#0d0a08');
+  bgGrad.addColorStop(1, '#050403');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // ============ 主聚光灯 — 多层叠加制造景深 ============
-  // 最外层：非常淡的巨大光锥
-  const light1 = ctx.createLinearGradient(0, 0, 0, H);
-  light1.addColorStop(0, 'rgba(200,160,80,0.00)');
-  light1.addColorStop(0.28, 'rgba(200,160,80,0.025)');
-  light1.addColorStop(0.42, 'rgba(200,160,80,0.06)');
-  light1.addColorStop(0.55, 'rgba(200,160,80,0.10)');
-  light1.addColorStop(0.65, 'rgba(200,160,80,0.05)');
-  light1.addColorStop(1, 'rgba(200,160,80,0.00)');
-  ctx.fillStyle = light1;
+  // ============ 金色光晕氛围 ============
+  // 顶部暖光
+  const topGlow = ctx.createRadialGradient(C, 0, 0, C, 0, W * 0.8);
+  topGlow.addColorStop(0, 'rgba(200,160,80,0.15)');
+  topGlow.addColorStop(0.5, 'rgba(180,140,60,0.05)');
+  topGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topGlow;
+  ctx.fillRect(0, 0, W, H * 0.6);
+
+  // 中央大光晕
+  const centerGlow = ctx.createRadialGradient(C, H * 0.48, 0, C, H * 0.48, 280);
+  centerGlow.addColorStop(0, 'rgba(220,180,100,0.20)');
+  centerGlow.addColorStop(0.4, 'rgba(200,150,70,0.08)');
+  centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = centerGlow;
   ctx.beginPath();
-  ctx.moveTo(C - 380, 0);
-  ctx.lineTo(C + 380, 0);
-  ctx.lineTo(C + 220, H * 0.72);
-  ctx.lineTo(C - 220, H * 0.72);
+  ctx.arc(C, H * 0.48, 280, 0, Math.PI * 2);
   ctx.fill();
 
-  // 中间层：稍强
-  const light2 = ctx.createLinearGradient(0, 0, 0, H);
-  light2.addColorStop(0, 'rgba(200,160,80,0.00)');
-  light2.addColorStop(0.30, 'rgba(200,160,80,0.01)');
-  light2.addColorStop(0.42, 'rgba(200,160,80,0.04)');
-  light2.addColorStop(0.50, 'rgba(200,160,80,0.10)');
-  light2.addColorStop(0.58, 'rgba(200,160,80,0.06)');
-  light2.addColorStop(1, 'rgba(200,160,80,0.00)');
-  ctx.fillStyle = light2;
-  ctx.beginPath();
-  ctx.moveTo(C - 200, 0);
-  ctx.lineTo(C + 200, 0);
-  ctx.lineTo(C + 100, H * 0.65);
-  ctx.lineTo(C - 100, H * 0.65);
-  ctx.fill();
-
-  // 核心光柱
-  const light3 = ctx.createLinearGradient(0, 0, 0, H);
-  light3.addColorStop(0, 'rgba(220,180,90,0.00)');
-  light3.addColorStop(0.38, 'rgba(220,180,90,0.02)');
-  light3.addColorStop(0.44, 'rgba(220,180,90,0.10)');
-  light3.addColorStop(0.52, 'rgba(220,180,90,0.12)');
-  light3.addColorStop(0.60, 'rgba(220,180,90,0.05)');
-  light3.addColorStop(1, 'rgba(220,180,90,0.00)');
-  ctx.fillStyle = light3;
-  ctx.beginPath();
-  ctx.moveTo(C - 60, 0);
-  ctx.lineTo(C + 60, 0);
-  ctx.lineTo(C + 40, H * 0.58);
-  ctx.lineTo(C - 40, H * 0.58);
-  ctx.fill();
-
-  // ============ 地面光圈 ============
-  const floorGlow = ctx.createRadialGradient(C, H * 0.55, 0, C, H * 0.55, 200);
-  floorGlow.addColorStop(0, 'rgba(220,180,100,0.18)');
-  floorGlow.addColorStop(0.2, 'rgba(200,160,80,0.10)');
-  floorGlow.addColorStop(0.5, 'rgba(180,140,60,0.03)');
-  floorGlow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = floorGlow;
-  ctx.beginPath();
-  ctx.ellipse(C, H * 0.55, 200, 40, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // ============ 尘埃粒子 ============
-  ctx.fillStyle = 'rgba(220,190,120,0.30)';
+  // ============ 金色粒子/尘埃 ============
   const particles = [
-    [C - 80, 180, 1.2], [C + 120, 200, 1.5], [C - 150, 260, 1.0], [C + 70, 300, 1.3],
-    [C - 40, 350, 1.8], [C + 160, 380, 0.8], [C - 110, 430, 1.1], [C + 90, 460, 1.4],
-    [C - 180, 500, 0.9], [C + 40, 520, 1.2], [C + 130, 560, 0.7], [C - 70, 590, 1.0],
-    [C + 10, 320, 2.0], [C - 30, 220, 1.6], [C + 180, 340, 0.6],
+    [120, 180, 2.5], [580, 220, 3], [200, 280, 2], [480, 320, 2.8],
+    [150, 400, 1.8], [520, 450, 2.2], [280, 200, 1.5], [420, 260, 2],
+    [180, 520, 2], [450, 580, 2.5], [320, 150, 1.8], [400, 180, 2.2],
+    [100, 350, 1.5], [600, 380, 1.8], [250, 480, 2], [500, 520, 2.2],
+    [350, 100, 1.5], [380, 120, 1.8],
   ];
+  ctx.fillStyle = 'rgba(220,190,120,0.35)';
   for (const [px, py, pr] of particles) {
     ctx.beginPath();
     ctx.arc(px, py, pr, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 对角线方向微光粒子
-  ctx.fillStyle = 'rgba(220,190,120,0.15)';
-  const dust = [
-    [C - 60, 200, 0.6], [C + 50, 240, 0.8], [C - 20, 280, 0.5], [C + 100, 310, 0.7],
-    [C - 90, 370, 0.6], [C + 30, 420, 0.9], [C - 140, 470, 0.5], [C + 80, 510, 0.7],
+  // 小粒子
+  const smallParticles = [
+    [80, 250, 1], [650, 300, 1.2], [180, 380, 0.8], [520, 420, 1],
+    [300, 550, 0.9], [400, 600, 1.1], [140, 480, 0.8], [580, 500, 1],
   ];
-  for (const [dx, dy, dr] of dust) {
+  ctx.fillStyle = 'rgba(220,190,120,0.20)';
+  for (const [px, py, pr] of smallParticles) {
     ctx.beginPath();
-    ctx.arc(dx, dy, dr, 0, Math.PI * 2);
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // ============ 中央圆形光晕（舞台灯光效果） ============
-  const centerGlow = ctx.createRadialGradient(C, H * 0.42, 0, C, H * 0.42, 260);
-  centerGlow.addColorStop(0, 'rgba(240,200,120,0.12)');
-  centerGlow.addColorStop(0.3, 'rgba(220,170,80,0.06)');
-  centerGlow.addColorStop(0.7, 'rgba(180,130,50,0.01)');
-  centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = centerGlow;
+  // ============ 中央金色面具/人脸轮廓 ============
+  const maskY = H * 0.52;
+  const maskScale = 1.0;
+
+  // 外层光晕
+  const maskGlow = ctx.createRadialGradient(C, maskY, 50, C, maskY, 200);
+  maskGlow.addColorStop(0, 'rgba(200,160,80,0.30)');
+  maskGlow.addColorStop(0.5, 'rgba(180,140,60,0.12)');
+  maskGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = maskGlow;
   ctx.beginPath();
-  ctx.arc(C, H * 0.42, 260, 0, Math.PI * 2);
+  ctx.arc(C, maskY, 200, 0, Math.PI * 2);
   ctx.fill();
 
-  // 小光环（更集中的光）
-  const innerGlow = ctx.createRadialGradient(C, H * 0.42, 0, C, H * 0.42, 100);
-  innerGlow.addColorStop(0, 'rgba(240,210,140,0.20)');
-  innerGlow.addColorStop(0.5, 'rgba(200,160,80,0.06)');
-  innerGlow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = innerGlow;
-  ctx.beginPath();
-  ctx.arc(C, H * 0.42, 100, 0, Math.PI * 2);
-  ctx.fill();
+  // 面具轮廓 - 金色线条
+  ctx.strokeStyle = 'rgba(200,160,80,0.85)';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
-  // ============ 顶部暗渐变（标题区域更深） ============
-  const topDark = ctx.createLinearGradient(0, 0, 0, 420);
-  topDark.addColorStop(0, 'rgba(5,5,8,0.70)');
-  topDark.addColorStop(0.45, 'rgba(5,5,8,0.25)');
-  topDark.addColorStop(1, 'rgba(5,5,8,0.00)');
+  // 外轮廓 - 椭圆形的脸
+  ctx.beginPath();
+  ctx.ellipse(C, maskY, 130 * maskScale, 180 * maskScale, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 内部装饰线条 - 抽象的眼睛
+  ctx.strokeStyle = 'rgba(200,160,80,0.60)';
+  ctx.lineWidth = 1.8;
+  // 左眼
+  ctx.beginPath();
+  ctx.arc(C - 45, maskY - 30, 25, 0, Math.PI * 2);
+  ctx.stroke();
+  // 右眼
+  ctx.beginPath();
+  ctx.arc(C + 45, maskY - 30, 25, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // 鼻子线条
+  ctx.beginPath();
+  ctx.moveTo(C, maskY - 10);
+  ctx.quadraticCurveTo(C - 8, maskY + 25, C, maskY + 45);
+  ctx.quadraticCurveTo(C + 8, maskY + 25, C, maskY - 10);
+  ctx.stroke();
+
+  // 嘴巴 - 微笑弧线
+  ctx.beginPath();
+  ctx.arc(C, maskY + 75, 35, 0.2 * Math.PI, 0.8 * Math.PI);
+  ctx.stroke();
+
+  // 额头装饰线
+  ctx.strokeStyle = 'rgba(200,160,80,0.40)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(C - 60, maskY - 110);
+  ctx.quadraticCurveTo(C, maskY - 130, C + 60, maskY - 110);
+  ctx.stroke();
+
+  // ============ 顶部暗化遮罩 ============
+  const topDark = ctx.createLinearGradient(0, 0, 0, 200);
+  topDark.addColorStop(0, 'rgba(5,4,3,0.85)');
+  topDark.addColorStop(0.6, 'rgba(5,4,3,0.40)');
+  topDark.addColorStop(1, 'rgba(5,4,3,0)');
   ctx.fillStyle = topDark;
-  ctx.fillRect(0, 0, W, 420);
+  ctx.fillRect(0, 0, W, 200);
 
-  // ============ 底部暗渐变（QR 区域） ============
-  const bottomDark = ctx.createLinearGradient(0, H - 320, 0, H);
-  bottomDark.addColorStop(0, 'rgba(5,5,8,0.00)');
-  bottomDark.addColorStop(0.4, 'rgba(5,5,8,0.55)');
-  bottomDark.addColorStop(1, 'rgba(5,5,8,0.88)');
-  ctx.fillStyle = bottomDark;
-  ctx.fillRect(0, H - 320, W, 320);
-
-  // ============ 文字层 ============
+  // ============ 文字区域 ============
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // 顶部英文标语
-  ctx.fillStyle = 'rgba(200,160,100,0.28)';
-  ctx.font = '11px "Georgia", "Times New Roman", serif';
-  ctx.letterSpacing = '4px';
-  ctx.fillText('A P S Y C H O L O G I C A L  ·  P L A Y H O U S E', C, 155);
+  // 顶部英文
+  ctx.fillStyle = 'rgba(200,160,100,0.35)';
+  ctx.font = '10px "Georgia", "Times New Roman", serif';
+  ctx.fillText('A  PSYCHOLOGICAL  PLAYHOUSE', C, 95);
 
-  // 主标题
-  const titleY = 265;
-  ctx.shadowColor = 'rgba(0,0,0,0.9)';
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 8;
+  // 主标题 "内心剧场"
+  const titleY = 175;
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 25;
+  ctx.shadowOffsetY = 6;
 
-  const titleGrad = ctx.createLinearGradient(0, titleY - 52, 0, titleY + 52);
-  titleGrad.addColorStop(0, '#f5e0a8');
-  titleGrad.addColorStop(0.4, '#efe0c0');
-  titleGrad.addColorStop(0.55, '#faf0d8');
-  titleGrad.addColorStop(0.7, '#efe0c0');
+  const titleGrad = ctx.createLinearGradient(0, titleY - 45, 0, titleY + 45);
+  titleGrad.addColorStop(0, '#f8e8c0');
+  titleGrad.addColorStop(0.3, '#fff8e8');
+  titleGrad.addColorStop(0.5, '#faf0d0');
+  titleGrad.addColorStop(0.7, '#e8d0a0');
   titleGrad.addColorStop(1, '#c9a050');
   ctx.fillStyle = titleGrad;
-  ctx.font = 'bold 90px "PingFang SC", "Noto Sans SC", "STHeiti", "SimHei", sans-serif';
+  ctx.font = 'bold 78px "PingFang SC", "Noto Sans SC", "STHeiti", sans-serif';
   ctx.fillText('内心剧场', C, titleY);
 
   ctx.shadowColor = 'transparent';
@@ -201,52 +186,117 @@ async function generatePoster() {
   ctx.shadowOffsetY = 0;
 
   // 英文副标题
-  ctx.fillStyle = 'rgba(200,160,100,0.22)';
-  ctx.font = 'italic 12px "Georgia", serif';
-  ctx.fillText('T H E   I N N E R   T H E A T E R', C, 335);
+  ctx.fillStyle = 'rgba(200,160,100,0.30)';
+  ctx.font = 'italic 11px "Georgia", serif';
+  ctx.fillText('THE INNER THEATER', C, 235);
 
-  // 细分隔线
-  ctx.strokeStyle = 'rgba(180,140,80,0.18)';
-  ctx.lineWidth = 0.6;
+  // 分隔线 + 圆点
+  ctx.strokeStyle = 'rgba(180,140,80,0.25)';
+  ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.moveTo(C - 140, 367);
-  ctx.lineTo(C - 14, 367);
-  ctx.moveTo(C + 14, 367);
-  ctx.lineTo(C + 140, 367);
+  ctx.moveTo(C - 100, 265);
+  ctx.lineTo(C - 12, 265);
+  ctx.moveTo(C + 12, 265);
+  ctx.lineTo(C + 100, 265);
   ctx.stroke();
-  ctx.fillStyle = 'rgba(180,140,80,0.22)';
+  ctx.fillStyle = 'rgba(180,140,80,0.35)';
   ctx.beginPath();
-  ctx.arc(C, 367, 2.5, 0, Math.PI * 2);
+  ctx.arc(C, 265, 3, 0, Math.PI * 2);
   ctx.fill();
 
-  // 核心 slogan
-  ctx.fillStyle = 'rgba(245,230,205,0.72)';
-  ctx.font = '20px "PingFang SC", "Noto Sans SC", "STHeiti", sans-serif';
-  ctx.fillText('在你纠结时，听见心底的声音', C, 415);
+  // 核心口号
+  ctx.fillStyle = 'rgba(245,230,205,0.88)';
+  ctx.font = '22px "PingFang SC", "Noto Sans SC", "STHeiti", sans-serif';
+  ctx.fillText('听见你心底的声音', C, 310);
 
-  // 副 slogan
-  ctx.fillStyle = 'rgba(220,200,170,0.45)';
-  ctx.font = '15px "PingFang SC", "Noto Sans SC", sans-serif';
-  ctx.fillText('直觉 · 恐惧 · 未来 · 他人 · 价值 —— 五个维度，一次对话', C, 460);
+  // 描述文字
+  ctx.fillStyle = 'rgba(200,180,150,0.50)';
+  ctx.font = '14px "PingFang SC", sans-serif';
+  ctx.fillText('一个为年轻人设计的决策辅助工具', C, 350);
+  ctx.fillText('5个心理剧场，帮你听见自己心底早已存在的答案', C, 375);
+
+  // ============ 五个游戏列表 ============
+  const games = [
+    { icon: '✋', name: '本能之手', desc: '光球替你在5秒内做选择' },
+    { icon: '📝', name: '反向恐惧清单', desc: '删去恐惧，留下真正的底线' },
+    { icon: '✉️', name: '平行时空来信', desc: 'AI生成不同未来的亲笔信' },
+    { icon: '👥', name: '朋友灵魂拷问室', desc: '借朋友的视角照见自己' },
+    { icon: '⚖️', name: '价值天平拍卖会', desc: '100枚金币竞标你的价值观' },
+  ];
+
+  const listStartY = 720;
+  const lineHeight = 58;
+
+  games.forEach((game, index) => {
+    const y = listStartY + index * lineHeight;
+    const num = String(index + 1).padStart(2, '0');
+
+    // 编号
+    ctx.fillStyle = 'rgba(180,140,80,0.35)';
+    ctx.font = '12px "Georgia", serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(num, 115, y);
+
+    // 图标
+    ctx.font = '18px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+    ctx.fillText(game.icon, 150, y);
+
+    // 游戏名称
+    ctx.fillStyle = 'rgba(245,230,205,0.90)';
+    ctx.font = '16px "PingFang SC", "Noto Sans SC", sans-serif';
+    ctx.fillText(game.name, 180, y);
+
+    // 描述
+    ctx.fillStyle = 'rgba(180,160,130,0.55)';
+    ctx.font = '13px "PingFang SC", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(game.desc, W - 115, y);
+
+    // 分隔线（除最后一项）
+    if (index < games.length - 1) {
+      ctx.strokeStyle = 'rgba(180,140,80,0.12)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(115, y + lineHeight / 2);
+      ctx.lineTo(W - 115, y + lineHeight / 2);
+      ctx.stroke();
+    }
+  });
+
+  // 恢复居中
+  ctx.textAlign = 'center';
+
+  // ============ 底部暗化 ============
+  const bottomDark = ctx.createLinearGradient(0, H - 200, 0, H);
+  bottomDark.addColorStop(0, 'rgba(5,4,3,0)');
+  bottomDark.addColorStop(0.5, 'rgba(5,4,3,0.60)');
+  bottomDark.addColorStop(1, 'rgba(5,4,3,0.90)');
+  ctx.fillStyle = bottomDark;
+  ctx.fillRect(0, H - 200, W, 200);
 
   // ============ 右下角二维码 ============
-  const qrSize = 98;
-  const qrX = W - qrSize - 44;
-  const qrY = H - qrSize - 52;
+  const qrSize = 95;
+  const qrX = W - qrSize - 50;
+  const qrY = H - qrSize - 70;
 
-  // 二维码白底卡片
-  ctx.fillStyle = '#f8f2e6';
-  drawRoundRect(ctx, qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 10);
+  // 白底圆角卡片
+  ctx.fillStyle = '#faf6f0';
+  drawRoundRect(ctx, qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 8);
   ctx.fill();
 
   // 生成二维码
   const qrDataUrl = await QRCode.toDataURL(SITE_URL, {
     width: qrSize * 2,
     margin: 1,
-    color: { dark: '#1a1a1a', light: '#f8f2e6' },
+    color: { dark: '#1a1a1a', light: '#faf6f0' },
   });
   const qrImg = await loadImage(qrDataUrl);
   ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+  // ============ 底部slogan ============
+  ctx.fillStyle = 'rgba(180,160,130,0.35)';
+  ctx.font = '12px "PingFang SC", sans-serif';
+  ctx.fillText('不为你的纠结提供答案，而是帮你听见心底早已存在的声音', C, H - 28);
 
   return canvas.toDataURL('image/png');
 }
