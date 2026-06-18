@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ParticleBackground from './ParticleBackground';
 import OnboardingModal from './OnboardingModal';
 import ProfileEditor from './ProfileEditor';
-import { avatarStyle, DEFAULT_AVATAR, defaultDisplayName } from '../utils/profile';
+import { getAvatarConfigById, DEFAULT_AVATAR, defaultDisplayName } from '../utils/profile';
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -19,9 +19,18 @@ export default function Layout({ children }) {
   const shouldShowOnboarding = user && isNewUser && !hideHeader;
 
   const displayName = profile?.nickname || defaultDisplayName(user?.email);
-  const avatarCfg = profile?.avatar
-    ? avatarStyle(profile.avatar, profile.gender, 36)
-    : { ...avatarStyle(DEFAULT_AVATAR.id, '', 36), background: 'linear-gradient(135deg, #6B7280, #9CA3AF)' };
+
+  // Get avatar config (emoji + colors)
+  const avatarCfgObj = profile?.avatar
+    ? getAvatarConfigById(profile.avatar)
+    : DEFAULT_AVATAR;
+  const avatarCss = {
+    width: 36, height: 36, borderRadius: '50%',
+    background: `linear-gradient(135deg, ${avatarCfgObj.bg[0]}, ${avatarCfgObj.bg[1]})`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 16, flexShrink: 0,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.2)', userSelect: 'none',
+  };
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-dark)' }}>
@@ -100,9 +109,9 @@ export default function Layout({ children }) {
                   onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                 >
-                  <div style={avatarCfg}>
+                  <div style={avatarCss}>
                     <span style={{ fontSize: '16px' }}>
-                      {profile?.avatar ? '👤' : DEFAULT_AVATAR.emoji}
+                      {avatarCfgObj.emoji}
                     </span>
                   </div>
                   <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', letterSpacing: '1px' }}>
