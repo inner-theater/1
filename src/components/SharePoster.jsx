@@ -84,13 +84,13 @@ async function generatePoster() {
 
   // ===== 金色声波装饰点 =====
   const dotCount = 25;
-  const startX = 65;
-  const endX = W - 65;
+  const dotStart = 65;
+  const dotEnd = W - 65;
   const baseY = 220;
 
   for (let i = 0; i < dotCount; i++) {
     const t = i / (dotCount - 1);
-    const x = startX + t * (endX - startX);
+    const x = dotStart + t * (dotEnd - dotStart);
     // 中间高两边低的拱形
     const heightFactor = Math.sin(t * Math.PI);
     const y = baseY - heightFactor * 25;
