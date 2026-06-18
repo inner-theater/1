@@ -49,6 +49,8 @@ function drawHeart(ctx, cx, cy, s) {
   ctx.bezierCurveTo(rightX, topY, cx + s * 0.52, cy + s * 0.12, cx, bottomY);
 }
 
+const POSTER_BG = './images/A_dark_empty_theater_stage_int_2026-06-18T06-36-49.png';
+
 async function generatePoster() {
   const W = 750, H = 1334;
   const c = document.createElement('canvas');
@@ -56,127 +58,40 @@ async function generatePoster() {
   const ctx = c.getContext('2d');
   const C = W / 2;
 
-  // ============ 1. 背景 ============
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#0d0906');
-  bg.addColorStop(0.4, '#0a0604');
-  bg.addColorStop(1, '#050302');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  // ============ 1. 加载并绘制剧场背景图 ============
+  const bgImg = await loadImage(POSTER_BG);
+  // 图片 1080×1920，Canvas 750×1334，比例几乎一致，直接缩放
+  ctx.drawImage(bgImg, 0, 0, W, H);
 
-  // 中心暖光氛围
-  const glow = ctx.createRadialGradient(C, 420, 60, C, 420, 500);
-  glow.addColorStop(0, 'rgba(200, 150, 60, 0.10)');
-  glow.addColorStop(0.4, 'rgba(160, 110, 40, 0.04)');
-  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  // 顶部暗化（保证标题可读）
+  const topDark = ctx.createLinearGradient(0, 0, 0, 280);
+  topDark.addColorStop(0, 'rgba(5, 3, 2, 0.55)');
+  topDark.addColorStop(0.7, 'rgba(5, 3, 2, 0.15)');
+  topDark.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = topDark;
+  ctx.fillRect(0, 0, W, 280);
 
-  // ============ 2. 舞台帷幕（两侧暗红丝绒） ============
-  function drawCurtain(side, xStart, width) {
-    // 帷幕渐变
-    const curtainGrad = ctx.createLinearGradient(xStart, 0, xStart + width, 0);
-    if (side === 'left') {
-      curtainGrad.addColorStop(0, 'rgba(30, 8, 6, 0.95)');
-      curtainGrad.addColorStop(0.3, 'rgba(45, 12, 8, 0.8)');
-      curtainGrad.addColorStop(0.65, 'rgba(55, 15, 10, 0.55)');
-      curtainGrad.addColorStop(0.85, 'rgba(40, 10, 6, 0.2)');
-      curtainGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    } else {
-      curtainGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      curtainGrad.addColorStop(0.15, 'rgba(40, 10, 6, 0.2)');
-      curtainGrad.addColorStop(0.35, 'rgba(55, 15, 10, 0.55)');
-      curtainGrad.addColorStop(0.7, 'rgba(45, 12, 8, 0.8)');
-      curtainGrad.addColorStop(1, 'rgba(30, 8, 6, 0.95)');
-    }
-    ctx.fillStyle = curtainGrad;
-    ctx.fillRect(xStart, 0, width, H);
+  // 底部暗化（保证游戏标签 + QR 可读，同时覆盖 AI 水印）
+  const bottomDark = ctx.createLinearGradient(0, H - 480, 0, H);
+  bottomDark.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  bottomDark.addColorStop(0.3, 'rgba(5, 3, 2, 0.4)');
+  bottomDark.addColorStop(0.65, 'rgba(5, 3, 2, 0.8)');
+  bottomDark.addColorStop(1, 'rgba(5, 3, 2, 0.97)');
+  ctx.fillStyle = bottomDark;
+  ctx.fillRect(0, H - 480, W, 480);
 
-    // 褶皱线
-    ctx.strokeStyle = 'rgba(60, 18, 10, 0.3)';
-    ctx.lineWidth = 1;
-    const foldCount = 7;
-    const foldStep = width / (foldCount + 1);
-    for (let i = 1; i <= foldCount; i++) {
-      const fx = xStart + foldStep * i;
-      ctx.beginPath();
-      ctx.moveTo(fx, 80);
-      // 微微弯曲的褶皱线
-      ctx.quadraticCurveTo(fx + (side === 'left' ? 8 : -8), 450, fx, H);
-      ctx.stroke();
-    }
+  // 额外覆盖右下角水印区域
+  ctx.fillStyle = 'rgba(5, 3, 2, 0.95)';
+  ctx.fillRect(W - 200, H - 100, 200, 100);
 
-    // 内侧弧线（帷幕被拉开的收束线）
-    ctx.strokeStyle = 'rgba(80, 25, 15, 0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    const arcX = side === 'left' ? xStart + width : xStart;
-    ctx.moveTo(arcX, 80);
-    ctx.bezierCurveTo(arcX + (side === 'left' ? 40 : -40), 230, arcX + (side === 'left' ? 60 : -60), 380, arcX + (side === 'left' ? 30 : -30), 580);
-    ctx.stroke();
-  }
+  // 中央区域轻微暗化（突出心形）
+  const midDark = ctx.createRadialGradient(C, 430, 200, C, 430, 450);
+  midDark.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  midDark.addColorStop(1, 'rgba(5, 3, 2, 0.3)');
+  ctx.fillStyle = midDark;
+  ctx.fillRect(0, 200, W, 450);
 
-  drawCurtain('left', 0, 180);
-  drawCurtain('right', W - 180, 180);
-
-  // ============ 3. 聚光灯 ============
-  // 主光束
-  const beam = ctx.createLinearGradient(0, 0, 0, 720);
-  beam.addColorStop(0, 'rgba(220, 180, 80, 0.08)');
-  beam.addColorStop(0.3, 'rgba(200, 150, 60, 0.06)');
-  beam.addColorStop(0.7, 'rgba(160, 100, 30, 0.02)');
-  beam.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = beam;
-  ctx.beginPath();
-  ctx.moveTo(C - 140, 0);
-  ctx.lineTo(C + 140, 0);
-  ctx.lineTo(C + 200, 700);
-  ctx.lineTo(C - 200, 700);
-  ctx.closePath();
-  ctx.fill();
-
-  // 第二层更窄的光束
-  const beam2 = ctx.createLinearGradient(0, 0, 0, 650);
-  beam2.addColorStop(0, 'rgba(240, 200, 100, 0.05)');
-  beam2.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = beam2;
-  ctx.beginPath();
-  ctx.moveTo(C - 60, 0);
-  ctx.lineTo(C + 60, 0);
-  ctx.lineTo(C + 90, 580);
-  ctx.lineTo(C - 90, 580);
-  ctx.closePath();
-  ctx.fill();
-
-  // ============ 4. 舞台地面 ============
-  // 地面光斑
-  const floorGlow = ctx.createRadialGradient(C, 600, 20, C, 600, 200);
-  floorGlow.addColorStop(0, 'rgba(200, 150, 60, 0.12)');
-  floorGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = floorGlow;
-  ctx.beginPath();
-  ctx.ellipse(C, 600, 220, 40, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 透视线
-  ctx.strokeStyle = 'rgba(180, 140, 80, 0.08)';
-  ctx.lineWidth = 0.5;
-  for (let i = -3; i <= 3; i++) {
-    ctx.beginPath();
-    const vx = C + i * 70;
-    ctx.moveTo(vx, 570);
-    ctx.lineTo(vx + i * 20, H);
-    ctx.stroke();
-  }
-  // 舞台前沿线
-  ctx.strokeStyle = 'rgba(180, 140, 80, 0.15)';
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.moveTo(C - 250, 620);
-  ctx.lineTo(C + 250, 620);
-  ctx.stroke();
-
-  // ============ 5. 心 ============
+  // ============ 2. 心 ============
   const heartCx = C, heartCy = 430, heartSize = 240;
 
   // 心形柔光
@@ -222,7 +137,7 @@ async function generatePoster() {
   drawHeart(ctx, heartCx, heartCy, heartSize - 3);
   ctx.stroke();
 
-  // ============ 6. 心形内部小舞台 ============
+  // ============ 3. 心形内部小舞台 ============
   // 小幕布弧线
   ctx.strokeStyle = 'rgba(200, 100, 60, 0.25)';
   ctx.lineWidth = 1;
@@ -252,7 +167,7 @@ async function generatePoster() {
   ctx.arc(heartCx, heartCy + 8, 18, 0, Math.PI * 2);
   ctx.fill();
 
-  // ============ 7. 标题 ============
+  // ============ 4. 标题 ============
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
@@ -283,7 +198,7 @@ async function generatePoster() {
   ctx.font = 'italic 12px "Georgia", serif';
   ctx.fillText('T H E   I N N E R   T H E A T E R', C, 228);
 
-  // ============ 8. 五束光线 + 游戏标签 ============
+  // ============ 5. 五束光线 + 游戏标签 ============
   const gamesY = 710;
   const gameGap = (W - 120) / GAMES.length;
   const gameStartX = 60 + gameGap / 2;
@@ -337,7 +252,7 @@ async function generatePoster() {
     ctx.fillText(game.tag, gx, gamesY + 90);
   });
 
-  // ============ 9. Slogan 区 ============
+  // ============ 6. Slogan 区 ============
   const sloganY = gamesY + 150;
   // 分隔线
   ctx.strokeStyle = 'rgba(180, 140, 60, 0.12)';
@@ -358,15 +273,7 @@ async function generatePoster() {
   ctx.font = '15px "PingFang SC", "Noto Sans SC", sans-serif';
   ctx.fillText('五个维度，一场与自己的对话', C, sloganY + 35);
 
-  // ============ 10. 底部暗化 + QR ============
-  const bottomDark = ctx.createLinearGradient(0, H - 300, 0, H);
-  bottomDark.addColorStop(0, 'rgba(5, 3, 2, 0)');
-  bottomDark.addColorStop(0.5, 'rgba(5, 3, 2, 0.7)');
-  bottomDark.addColorStop(1, 'rgba(5, 3, 2, 0.95)');
-  ctx.fillStyle = bottomDark;
-  ctx.fillRect(0, H - 300, W, 300);
-
-  // QR code
+  // ============ 7. QR code ============
   const qrSize = 90;
   const qrX = W - qrSize - 52;
   const qrY = H - qrSize - 55;
