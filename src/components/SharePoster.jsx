@@ -5,11 +5,11 @@ import QRCode from 'qrcode';
 const SITE_URL = 'https://inner-theater.github.io/1/';
 
 const GAMES = [
-  { name: '本能之手', icon: '🤲', desc: '抓住命运的光球' },
-  { name: '反向恐惧清单', icon: '🎭', desc: '删去恐惧留下底线' },
-  { name: '平行时空来信', icon: '✉️', desc: 'AI写下未来的信' },
-  { name: '朋友灵魂拷问室', icon: '🔮', desc: '借朋友的视角看自己' },
-  { name: '价值天平拍卖会', icon: '⚖️', desc: '用金币称量价值观' },
+  { name: '本能之手', icon: '🤲', desc: '光球替你在5秒内做出选择' },
+  { name: '反向恐惧清单', icon: '🎭', desc: '删去恐惧，留下真正的底线' },
+  { name: '平行时空来信', icon: '✉️', desc: 'AI生成不同未来的亲笔信' },
+  { name: '朋友灵魂拷问室', icon: '🔮', desc: '借朋友的视角照见自己' },
+  { name: '价值天平拍卖会', icon: '⚖️', desc: '100枚金币竞拍你的价值观' },
 ];
 
 function loadImage(src) {
@@ -23,7 +23,7 @@ function loadImage(src) {
 }
 
 async function generatePoster() {
-  const W = 750, H = 1400;
+  const W = 750, H = 1420;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
@@ -198,21 +198,23 @@ async function generatePoster() {
   ctx.fillText('5个心理剧场，帮你听见自己心底早已存在的答案', W / 2, 590);
 
   // ===== 五大剧场卡片 =====
-  const gridTop = 650;
-  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  const gridTop = 660;
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
   ctx.font = '12px "Noto Serif SC", serif';
   ctx.fillText('··· 五大剧场 ···', W / 2, gridTop);
 
   // 双列卡片布局
   const cols = 2;
-  const cardW = 285, cardH = 68;
-  const gapX = 28, gapY = 18;
+  const cardW = 290, cardH = 72;
+  const gapX = 24, gapY = 20;
   const gridX = (W - (cols * cardW + (cols - 1) * gapX)) / 2;
 
   GAMES.forEach((g, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const cx = gridX + col * (cardW + gapX);
+    // 最后一行只有一张卡时居中对齐
+    const isLastRowSingle = (i === GAMES.length - 1) && (GAMES.length % cols === 1);
+    const cx = isLastRowSingle ? (W - cardW) / 2 : gridX + col * (cardW + gapX);
     const cy = gridTop + 32 + row * (cardH + gapY);
 
     // Card
@@ -229,24 +231,24 @@ async function generatePoster() {
     ctx.fillRect(cx, cy, 3, cardH);
 
     // 图标
-    ctx.font = '24px sans-serif';
+    ctx.font = '26px sans-serif';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'left';
-    ctx.fillText(g.icon, cx + 18, cy + 40);
+    ctx.fillText(g.icon, cx + 16, cy + 44);
 
     // 名称
     ctx.fillStyle = '#e8d48b';
     ctx.font = 'bold 15px "Noto Sans SC", sans-serif';
-    ctx.fillText(g.name, cx + 54, cy + 26);
+    ctx.fillText(g.name, cx + 54, cy + 28);
 
     // 描述
-    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
     ctx.font = '11px "Noto Sans SC", sans-serif';
-    ctx.fillText(g.desc, cx + 54, cy + 50);
+    ctx.fillText(g.desc, cx + 54, cy + 52);
   });
 
   // ===== QR Code =====
-  const qrSectionTop = gridTop + 32 + 3 * (cardH + gapY) + 55;
+  const qrSectionTop = gridTop + 32 + 3 * (cardH + gapY) + 60;
 
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.font = '13px "Noto Serif SC", serif';
