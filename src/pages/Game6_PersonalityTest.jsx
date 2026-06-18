@@ -5,39 +5,76 @@ import storage from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarConfigById } from '../utils/profile';
 
-// 大五人格 (OCEAN) 测试题目
-const QUESTIONS = [
-  // 开放性 Openness (1-5)
-  { id: 1, dim: 'openness', text: '我对艺术、音乐或文学有浓厚的兴趣', reverse: false },
-  { id: 2, dim: 'openness', text: '我喜欢尝试新事物，哪怕有些冒险', reverse: false },
-  { id: 3, dim: 'openness', text: '我经常沉浸在自己的想象和思考中', reverse: false },
-  { id: 4, dim: 'openness', text: '我更喜欢熟悉和常规的事物', reverse: true },
-  { id: 5, dim: 'openness', text: '我对抽象的理论和哲学问题感兴趣', reverse: false },
-  // 尽责性 Conscientiousness (6-10)
-  { id: 6, dim: 'conscientiousness', text: '我会把东西整理得井井有条', reverse: false },
-  { id: 7, dim: 'conscientiousness', text: '我做事总是有始有终，不会半途而废', reverse: false },
-  { id: 8, dim: 'conscientiousness', text: '我喜欢提前规划而不是临时抱佛脚', reverse: false },
-  { id: 9, dim: 'conscientiousness', text: '有时候我做事比较随性，不按计划来', reverse: true },
-  { id: 10, dim: 'conscientiousness', text: '答应别人的事我一定会做到', reverse: false },
-  // 外向性 Extraversion (11-15)
-  { id: 11, dim: 'extraversion', text: '我更喜欢独处而不是参加社交活动', reverse: true },
-  { id: 12, dim: 'extraversion', text: '在人群中我通常是活跃气氛的那个人', reverse: false },
-  { id: 13, dim: 'extraversion', text: '认识新朋友让我感到兴奋', reverse: false },
-  { id: 14, dim: 'extraversion', text: '我喜欢安静的环境胜过热闹的场合', reverse: true },
-  { id: 15, dim: 'extraversion', text: '跟人聊天让我充满能量', reverse: false },
-  // 宜人性 Agreeableness (16-20)
-  { id: 16, dim: 'agreeableness', text: '看到别人遇到困难，我会主动帮忙', reverse: false },
-  { id: 17, dim: 'agreeableness', text: '我很少跟人发生争执，宁可自己退一步', reverse: false },
-  { id: 18, dim: 'agreeableness', text: '我相信大多数人都是善良的', reverse: false },
-  { id: 19, dim: 'agreeableness', text: '有时候我觉得自己把别人的需求放在了前面', reverse: false },
-  { id: 20, dim: 'agreeableness', text: '即使不喜欢一个人，我也会保持礼貌', reverse: false },
-  // 情绪稳定性 Neuroticism (21-25)
-  { id: 21, dim: 'neuroticism', text: '我常常感到紧张或焦虑', reverse: false },
-  { id: 22, dim: 'neuroticism', text: '一点小事就能影响我的心情', reverse: false },
-  { id: 23, dim: 'neuroticism', text: '大多数时候我对自己的生活感到满意', reverse: true },
-  { id: 24, dim: 'neuroticism', text: '在压力下我依然能保持冷静', reverse: true },
-  { id: 25, dim: 'neuroticism', text: '我很少为过去的事情后悔或纠结', reverse: true },
+// 大五人格题库 — 每维度10题，共50题，每次随机抽30题
+const FULL_QUESTION_BANK = [
+  { dim: 'openness', text: '我对艺术、音乐或文学有浓厚的兴趣', reverse: false },
+  { dim: 'openness', text: '我喜欢尝试新事物，哪怕有些冒险', reverse: false },
+  { dim: 'openness', text: '我经常沉浸在自己的想象和思考中', reverse: false },
+  { dim: 'openness', text: '我喜欢探索没去过的地方', reverse: false },
+  { dim: 'openness', text: '我对抽象的理论和哲学问题感兴趣', reverse: false },
+  { dim: 'openness', text: '我容易被一首歌或一幅画深深打动', reverse: false },
+  { dim: 'openness', text: '我不喜欢一成不变的日常生活', reverse: false },
+  { dim: 'openness', text: '我喜欢了解不同文化和观点', reverse: false },
+  { dim: 'openness', text: '我更喜欢熟悉和常规的事物', reverse: true },
+  { dim: 'openness', text: '别人觉得我脑洞很大，总有一些新奇的想法', reverse: false },
+  { dim: 'conscientiousness', text: '我会把东西整理得井井有条', reverse: false },
+  { dim: 'conscientiousness', text: '我做事总是有始有终，不会半途而废', reverse: false },
+  { dim: 'conscientiousness', text: '我喜欢提前规划而不是临时抱佛脚', reverse: false },
+  { dim: 'conscientiousness', text: '答应别人的事我一定会尽力做到', reverse: false },
+  { dim: 'conscientiousness', text: '我经常把东西放得到处都是', reverse: true },
+  { dim: 'conscientiousness', text: '我会给自己设定目标并按计划执行', reverse: false },
+  { dim: 'conscientiousness', text: '出门前我会反复确认是否忘带东西', reverse: false },
+  { dim: 'conscientiousness', text: '有时候我会拖延到最后一刻才动手', reverse: true },
+  { dim: 'conscientiousness', text: '我喜欢按照日程表来安排一天', reverse: false },
+  { dim: 'conscientiousness', text: '我对细节很敏感，能发现别人忽略的小错误', reverse: false },
+  { dim: 'extraversion', text: '在人群中我通常是活跃气氛的那个人', reverse: false },
+  { dim: 'extraversion', text: '认识新朋友让我感到兴奋', reverse: false },
+  { dim: 'extraversion', text: '跟人聊天让我充满能量而不是感到疲惫', reverse: false },
+  { dim: 'extraversion', text: '我更喜欢一个人待着而不是参加聚会', reverse: true },
+  { dim: 'extraversion', text: '在会议上我通常是第一个发言的人', reverse: false },
+  { dim: 'extraversion', text: '我喜欢安静的环境胜过热闹的场合', reverse: true },
+  { dim: 'extraversion', text: '在陌生的社交场合我会主动找人聊天', reverse: false },
+  { dim: 'extraversion', text: '人多的场合让我感到被消耗', reverse: true },
+  { dim: 'extraversion', text: '我享受成为关注的焦点', reverse: false },
+  { dim: 'extraversion', text: '比起一群人，我更喜欢和几个密友深度交流', reverse: true },
+  { dim: 'agreeableness', text: '看到别人遇到困难，我会主动去帮忙', reverse: false },
+  { dim: 'agreeableness', text: '我很少跟人发生争执，宁可自己退一步', reverse: false },
+  { dim: 'agreeableness', text: '我相信世界上大多数人是善良的', reverse: false },
+  { dim: 'agreeableness', text: '别人说我是个容易被说服的人', reverse: false },
+  { dim: 'agreeableness', text: '即使不喜欢一个人我也会保持基本的礼貌', reverse: false },
+  { dim: 'agreeableness', text: '我更倾向于直接指出别人的错误', reverse: true },
+  { dim: 'agreeableness', text: '看感人的电影或故事时我容易流泪', reverse: false },
+  { dim: 'agreeableness', text: '我总是先考虑对方感受再说自己的看法', reverse: false },
+  { dim: 'agreeableness', text: '如果有人插队我会直接上前提醒', reverse: true },
+  { dim: 'agreeableness', text: '朋友说我是个可以依靠和倾诉的人', reverse: false },
+  { dim: 'neuroticism', text: '我常常感到紧张或焦虑', reverse: false },
+  { dim: 'neuroticism', text: '一点小事就能影响我一整天的心情', reverse: false },
+  { dim: 'neuroticism', text: '大多数时候我对自己的生活感到满意', reverse: true },
+  { dim: 'neuroticism', text: '在压力下我依然能保持冷静和理智', reverse: true },
+  { dim: 'neuroticism', text: '我很少为过去的事情后悔或反复纠结', reverse: true },
+  { dim: 'neuroticism', text: '别人无意间的一句话能让我思来想去很久', reverse: false },
+  { dim: 'neuroticism', text: '我比身边的人更容易感到担心', reverse: false },
+  { dim: 'neuroticism', text: '不管发生什么，我大多数时候都比较平静', reverse: true },
+  { dim: 'neuroticism', text: '糟糕的天气会让我一整天都闷闷不乐', reverse: false },
+  { dim: 'neuroticism', text: '面对突发状况时我能很快冷静地想办法', reverse: true },
 ];
+
+// 随机抽取并打乱题目
+function getRandomQuestions(count = 30) {
+  const perDim = Math.floor(count / 5);
+  const extra = count - perDim * 5;
+  const dims = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+
+  const selected = [];
+  dims.forEach((dim, i) => {
+    const pool = FULL_QUESTION_BANK.filter(q => q.dim === dim);
+    const take = perDim + (i < extra ? 1 : 0);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    selected.push(...shuffled.slice(0, take).map((q, idx) => ({ ...q, id: selected.length + idx + 1 })));
+  });
+
+  return selected.sort(() => Math.random() - 0.5).map((q, i) => ({ ...q, id: i + 1 }));
+}
 
 const DIM_LABELS = {
   openness: { name: '开放性', emoji: '🎨', desc: '对新事物、新体验的接纳和好奇程度' },
@@ -358,6 +395,7 @@ export default function Game6_PersonalityTest() {
   const [step, setStep] = useState('intro');
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [scores, setScores] = useState(null);
@@ -365,9 +403,9 @@ export default function Game6_PersonalityTest() {
   const { profile } = useAuth();
 
   const handleAnswer = (score) => {
-    const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: score };
+    const newAnswers = { ...answers, [questions[currentQ].id]: score };
     setAnswers(newAnswers);
-    if (currentQ < QUESTIONS.length - 1) {
+    if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
     } else {
       calculateAndAnalyze(newAnswers);
@@ -381,7 +419,7 @@ export default function Game6_PersonalityTest() {
     // 计算各维度得分
     const dimScores = {};
     Object.keys(DIM_LABELS).forEach(d => { dimScores[d] = []; });
-    QUESTIONS.forEach(q => {
+    questions.forEach(q => {
       const raw = allAnswers[q.id] || 3;
       const score = q.reverse ? 6 - raw : raw;
       dimScores[q.dim].push(score);
@@ -440,13 +478,14 @@ export default function Game6_PersonalityTest() {
   const handleRestart = () => {
     setStep('intro');
     setCurrentQ(0);
+    setQuestions([]);
     setAnswers({});
     setAnalysis(null);
     setScores(null);
     setCardUrl(null);
   };
 
-  const progress = ((currentQ + 1) / QUESTIONS.length) * 100;
+  const progress = ((currentQ + 1) / questions.length) * 100;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: 600, margin: '0 auto', padding: '20px' }}>
@@ -456,7 +495,7 @@ export default function Game6_PersonalityTest() {
           <h1 style={{ fontSize: 28, color: '#e8d8c0', marginBottom: 8, fontWeight: 700 }}>人格测试</h1>
           <p style={{ color: 'rgba(230,210,170,0.5)', fontSize: 14, marginBottom: 32, lineHeight: 1.8 }}>
             基于大五人格模型(OCEAN)<br />
-            25道题 · 约3分钟 · 生成专属人格画像卡片
+            30道题 · 约4分钟 · 每次随机抽题 · 生成专属人格画像卡片
           </p>
 
           <div style={{
@@ -473,7 +512,7 @@ export default function Game6_PersonalityTest() {
             </p>
           </div>
 
-          <button onClick={() => setStep('questions')} style={{
+          <button onClick={() => { setQuestions(getRandomQuestions()); setStep('questions'); }} style={{
             padding: '14px 48px', borderRadius: 10, border: 'none',
             background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
             color: '#fff', fontSize: 16, fontWeight: 600, cursor: 'pointer',
@@ -493,7 +532,7 @@ export default function Game6_PersonalityTest() {
             />
           </div>
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, textAlign: 'center', marginBottom: 24 }}>
-            第 {currentQ + 1} / {QUESTIONS.length} 题
+            第 {currentQ + 1} / {questions.length} 题
           </p>
 
           <AnimatePresence mode="wait">
@@ -505,7 +544,7 @@ export default function Game6_PersonalityTest() {
               transition={{ duration: 0.25 }}
             >
               <h3 style={{ color: '#e8d8c0', fontSize: 18, marginBottom: 28, lineHeight: 1.6, fontWeight: 500, textAlign: 'center' }}>
-                {QUESTIONS[currentQ].text}
+                {questions[currentQ].text}
               </h3>
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: 0, flexWrap: 'wrap' }}>
