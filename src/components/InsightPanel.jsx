@@ -7,16 +7,16 @@ import { getAvatarConfigById } from '../utils/profile';
 export default function InsightPanel({ gameType, context, visible }) {
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const { profile } = useAuth();
 
-  useEffect(() => {
-    if (!visible || !gameType || !context) return;
-
-    let cancelled = false;
+  const doFetch = (isRetry) => {
+    if (!gameType || !context) return;
+    console.log('[insight] 实时AI解析中...');
     setLoading(true);
     setInsight(null);
+    setError(false);
 
-    // Merge profile info into context for personalized analysis
     const avatarCfg = profile?.avatar ? getAvatarConfigById(profile.avatar) : null;
     const enrichedContext = {
       ...context,
@@ -27,13 +27,25 @@ export default function InsightPanel({ gameType, context, visible }) {
       },
     };
 
+    let cancelled = false;
     generateInsight(gameType, enrichedContext)
       .then((text) => {
-        if (!cancelled && text) { setInsight(text); setLoading(false); }
+        if (!cancelled) { setInsight(text); setLoading(false); }
       })
-      .catch(() => { if (!cancelled) setLoading(false); });
-
+      .catch((e) => {
+        if (!cancelled) {
+          console.error('[insight] AI调用失败:', e.message);
+          setError(true);
+          setLoading(false);
+        }
+      });
     return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    if (!visible || !gameType || !context) return;
+    const cancel = doFetch(false);
+    return cancel;
   }, [gameType, visible, JSON.stringify(context), profile]);
 
   if (!visible) return null;
@@ -61,17 +73,41 @@ export default function InsightPanel({ gameType, context, visible }) {
           </span>
         </div>
 
-        {loading ? (
+        {loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>
             <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
               style={{ display: 'inline-block', fontSize: '16px' }}>⏳</motion.span>
             AI 正在深度分析你的选择...
           </div>
-        ) : insight ? (
+        )}
+
+        {!loading && error && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '12px' }}>
+              ⚡ AI 服务暂时拥堵，稍后重试
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); doFetch(true); }}
+              style={{
+                padding: '8px 24px',
+                borderRadius: '8px',
+                background: 'rgba(96,165,250,0.2)',
+                color: '#60a5fa',
+                border: '1px solid rgba(96,165,250,0.3)',
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
+            >
+              点击重试
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && insight && (
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '14px', lineHeight: 1.9, whiteSpace: 'pre-wrap', margin: 0 }}>
             {insight}
           </p>
-        ) : null}
+        )}
       </motion.div>
     </AnimatePresence>
   );
