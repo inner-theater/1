@@ -17,7 +17,11 @@ async function callAI(gameType, context) {
 export async function generateInsight(gameType, context) {
   const modifiedContext = { ...context, maxTokens: 2500 };
   const ai = await callAI(gameType, modifiedContext);
-  if (ai) return ai;
+  if (ai) {
+    console.log('[insight] AI response received');
+    return ai;
+  }
+  console.warn('[insight] AI call failed, using fallback');
   return fallback(gameType, context);
 }
 

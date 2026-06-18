@@ -93,31 +93,31 @@ function extractEntities(text: string): string[] {
   }
 
   // 去重并限制数量
-  return entities.slice(0, 5);
+  return entities.slice(0, 3);
 }
 
-// 搜索现实世界信息
+// 搜索现实世界信息（2s超时保护，失败不影响主流程）
 async function searchWeb(query: string): Promise<string> {
   try {
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 2000);
     const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
     const resp = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InnerTheater/1.0)' },
+      signal: ctrl.signal,
     });
+    clearTimeout(timeoutId);
     if (!resp.ok) return '';
     const html = await resp.text();
 
-    // 简单提取摘要（最多取前3条）
     const snippets: string[] = [];
-    const linkRegex = /<a\s+[^>]*class="result-link"[^>]*>([^<]+)<\/a>/gi;
     const snippetRegex = /<td\s+class="result-snippet"[^>]*>([^<]+)<\/td>/gi;
-
     let m;
-    while ((m = snippetRegex.exec(html)) !== null && snippets.length < 3) {
+    while ((m = snippetRegex.exec(html)) !== null && snippets.length < 2) {
       const text = m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").trim();
       if (text.length > 20) snippets.push(text);
     }
-
-    return snippets.length > 0 ? `关于「${query}」的公开信息：\n${snippets.map((s, i) => `${i + 1}. ${s}`).join('\n')}` : '';
+    return snippets.length > 0 ? `关于「${query}」：${snippets.join(' ')}` : '';
   } catch {
     return '';
   }
@@ -125,21 +125,19 @@ async function searchWeb(query: string): Promise<string> {
 
 // ── 核心系统提示词：老朋友风格，反公式化 ──
 
-const SYS = `你跟用户认识了很久，知根知底，是那种半夜接到他电话也不会觉得烦的朋友。
+const SYS = `你是用户的老朋友，那种不用客套、想说什么说什么的交情。你不是心理医生，不做"诊断"不搞"分析框架"。
 
-你不是心理分析师，你不需要做"诊断"或者"评估"。你只需要像你平时的聊天一样——听懂他在说什么、在怕什么、在渴望什么。他知道的你要能理解，他还不知道的你要帮他看一眼。
+你做的事很简单：听懂他在说什么、在怕什么、在渴望什么，然后像晚上聊天一样跟他聊聊。他知道的你要能理解，他还模糊的你要帮他看清楚。
 
-重要规则：
-- 严禁套公式。每次回复必须根据用户的具体问题、选项、选择来生成独特的分析。如果两次回复有超过30%相似，说明你失败了。
-- 用户选了什么样的头像和性别，你不用刻意提，但你要在心里清楚他是一个什么样的人——然后用了解他的方式去说话，而不是用"以你的性格……"这种套路开头。
-- 用户的所有输入文字（纠结的问题、选项内容、恐惧项、金币分配、触动他的句子）是你分析的原材料——必须逐字引用，让用户感受到"你真的看了我写的东西"。
-- 如果用户输入中涉及现实世界的具体事物（地名、人名、星座、文学、食物、健康、品牌、公司等），我在用户问题后面附上"联网参考信息"，请将这些真实信息自然地融入分析，让你的回应更有知识深度和可信度。不要生硬地粘贴——要像你本来就了解这些一样自然地引用。
-- 你可以在分析中涉及文学、哲学、心理学、社会学等更深层的知识，但要像聊天时随口提到一样自然——不是"荣格说……"而是"你有没有想过……"
-- 对于用户的纠结和选择，给到积极、真实、合理的看法，可以温暖但不要鸡汤，可以深刻但不要说教。
-- 字数控制在600-800字，多点少点都可以，重要的是把话说透。不需要标题、序号、markdown格式。
-- 记住：这不是一篇分析报告，这是一段能让用户看完后沉默一会儿、或者笑一下、或者叹口气的对话。`;
+核心要求：
+- 每句话都要有具体落点——引用他写下的问题、选项名、恐惧事由、金币数、触动他的原文。不是泛泛而谈"你的选择反映了……"，而是具体的"你在「去成都」和「留在北京」之间抓住了前者"。让他感觉到你认真看了他写的东西。
+- 绝对不要套模板。如果回答看起来可以套用在另一个人身上，你就失败了。
+- 可以涉及文学、哲学、心理、社会学的视角，但要说人话——不是"弗洛伊德认为……"而是"你有没有觉得，人其实……"
+- 对他输入中提到的现实事物（地名、人名、作品、星座、品牌等），用你实际了解的知识去关联和延伸，但不要背书——像你刚好知道这件事一样自然地带出来。
+- 700-900字左右，不要把话吞回去，把你想说的都说了。不需要标题、序号、markdown。
+- 可以反问，可以调侃，可以心疼，可以有情绪。你不是在写报告，你是在跟朋友说话。`;
 
-const LETTER_SYS = `你是一个来自未来的写信人。你的信温暖、真诚、有画面感，像真的从未来寄来。包含具体生活细节、情感变化、成长感悟。`;
+const LETTER_SYS = `你是一个来自未来的写信人。你的信温暖、真诚、有画面感，像真的从未来寄来。包含具体的生活细节、情感变化、成长感悟。`;
 
 // ── 主服务 ──
 
@@ -158,7 +156,7 @@ serve(async (req) => {
 
     let userPrompt = '';
     let systemPrompt = SYS;
-    let temperature = 0.85;
+    let temperature = 0.9;
     let maxTokens = context?.maxTokens || 2500;
 
     // ── 构建各游戏类型的 userPrompt ──
@@ -277,27 +275,33 @@ ${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
       }
     }
 
-    // ── 联网搜索：提取实体并搜索 ──
+    // ── 联网搜索：并行搜索实体，3s 整体超时 ──
     if (gameType !== 'generate-questions' && gameType !== 'generate-letter') {
       const allText = userPrompt + (context.question || '') + (context.options || '');
       const entities = extractEntities(allText);
 
       if (entities.length > 0) {
-        const searchResults: string[] = [];
-        for (const entity of entities) {
-          const info = await searchWeb(entity);
-          if (info) searchResults.push(info);
-        }
-        if (searchResults.length > 0) {
-          userPrompt += `\n\n联网参考信息（请自然融入分析，不要生硬粘贴，像你本来就了解一样引用）：\n${searchResults.join('\n\n')}`;
+        try {
+          const searchPromise = Promise.all(entities.map(e => searchWeb(e))).then(results =>
+            results.filter(Boolean)
+          );
+          const timeoutPromise = new Promise<string[]>(resolve => setTimeout(() => resolve([]), 3000));
+          const searchResults = await Promise.race([searchPromise, timeoutPromise]);
+          if (searchResults.length > 0) {
+            userPrompt += `\n\n联网参考信息（请自然融入分析，像你本来就了解一样引用）：\n${searchResults.join('\n')}`;
+          }
+        } catch {
+          // 搜索失败不影响主流程
         }
       }
     }
 
     // ── 多模型 fallback ──
     let lastError = '';
+    let triedModels: string[] = [];
     for (const model of MODEL_QUEUE) {
       try {
+        triedModels.push(model);
         const resp = await fetch(BAILIAN_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
@@ -318,13 +322,13 @@ ${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
           return new Response(JSON.stringify({ content, model }), { headers: corsHeaders });
         }
         const err = data.error?.message || ''; const code = data.error?.code || '';
-        lastError = err;
-        if (err.includes('quota') || err.includes('limit') || code === 'rate_limit_exceeded') { continue; }
-        break;
+        lastError = `${model}: ${err || code || 'unknown'}`;
+        // 任何错误都尝试下一个模型
+        continue;
       } catch (err) { lastError = err.message; continue; }
     }
 
-    return new Response(JSON.stringify({ error: `模型全挂: ${lastError}` }), { status: 502, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: `模型全挂: ${lastError}`, tried: triedModels }), { status: 502, headers: corsHeaders });
   } catch (err) {
     return new Response(JSON.stringify({ error: '异常' }), { status: 500, headers: corsHeaders });
   }
