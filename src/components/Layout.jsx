@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ParticleBackground from './ParticleBackground';
 import OnboardingModal from './OnboardingModal';
 import ProfileEditor from './ProfileEditor';
+import SharePoster from './SharePoster';
 import { getAvatarConfigById, DEFAULT_AVATAR, defaultDisplayName } from '../utils/profile';
 
 export default function Layout({ children }) {
@@ -14,6 +15,7 @@ export default function Layout({ children }) {
   const hideHeader = location.pathname === '/login' || location.pathname === '/register';
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [showSharePoster, setShowSharePoster] = useState(false);
 
   // Show onboarding when new user detected
   const shouldShowOnboarding = user && isNewUser && !hideHeader;
@@ -46,6 +48,12 @@ export default function Layout({ children }) {
       <ProfileEditor
         visible={showProfileEditor}
         onClose={() => setShowProfileEditor(false)}
+      />
+
+      {/* Share poster */}
+      <SharePoster
+        visible={showSharePoster}
+        onClose={() => setShowSharePoster(false)}
       />
 
       {/* Header */}
@@ -93,6 +101,17 @@ export default function Layout({ children }) {
             <Link to="/museum" style={{ color: location.pathname === '/museum' ? '#e8d48b' : 'rgba(255,255,255,0.6)', fontSize: '13px', letterSpacing: '2px' }}>
               人生博物馆
             </Link>
+
+            {/* Share button */}
+            <button onClick={() => setShowSharePoster(true)}
+              style={{
+                background: 'rgba(201,168,76,0.12)', color: '#c9a84c', fontSize: '12px',
+                border: '1px solid rgba(201,168,76,0.2)', borderRadius: '6px',
+                padding: '4px 10px', cursor: 'pointer', letterSpacing: '1px',
+                display: 'flex', alignItems: 'center', gap: '4px',
+              }}>
+              📤 分享
+            </button>
 
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
