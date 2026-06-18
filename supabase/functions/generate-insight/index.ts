@@ -5,7 +5,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const BAILIAN_API_URL = 'https://llm-f3ssfovw40alr8if.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions';
 
-// qwen-turbo 优先，额度不够再依次 fallback
 const MODEL_QUEUE = [
   'qwen-turbo',
   'qwen-plus',
@@ -40,38 +39,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-// 从用户输入中提取可能涉及现实世界的实体关键词
 function extractEntities(text: string): string[] {
   const entities: string[] = [];
-
-  // 地名模式
   const placePatterns = [
     /(?:在|去|到|从|住|移居|搬到|生活在)([\u4e00-\u9fff]{2,6}(?:市|省|县|区|镇|村|街道|路|街|广场|花园|大厦|中心))/g,
     /(?:北京|上海|广州|深圳|杭州|成都|武汉|南京|重庆|西安|长沙|苏州|天津|厦门|青岛|大连|昆明|哈尔滨|长春|沈阳|郑州|济南|合肥|福州|南昌|贵阳|南宁|海口|拉萨|银川|西宁|兰州|乌鲁木齐|香港|澳门)/g,
   ];
-
-  // 著名人物
   const personPatterns = [
     /(?:像|和|参考|学)([\u4e00-\u9fff]{2,4})(?:一样|那样|的方式|的模式)/g,
     /(?:苏格拉底|柏拉图|亚里士多德|孔子|老子|庄子|孟子|尼采|叔本华|荣格|弗洛伊德|萨特|加缪|卡夫卡|村上春树|东野圭吾|贾平凹|莫言|余华|王小波|三毛|张爱玲|鲁迅)/g,
   ];
-
-  // 星座
   const zodiacPatterns = /(?:白羊座|金牛座|双子座|巨蟹座|狮子座|处女座|天秤座|天蝎座|射手座|摩羯座|水瓶座|双鱼座)/g;
-
-  // 文学/影视作品
   const workPatterns = /《([\u4e00-\u9fff]{1,20})》/g;
-
-  // 公司/品牌
   const brandPatterns = /(?:阿里|腾讯|百度|字节|华为|小米|比亚迪|特斯拉|苹果|谷歌|微软|亚马逊|Meta|OpenAI|蔚来|理想|小鹏|京东|美团|滴滴|拼多多|哔哩哔哩)/g;
-
-  // 食物/菜系
   const foodPatterns = /(?:火锅|烧烤|日料|西餐|中餐|川菜|粤菜|湘菜|淮扬菜|海鲜|素食|轻食|奶茶|咖啡|烘焙|甜品)/g;
-
-  // 健康/疾病
   const healthPatterns = /(?:焦虑|抑郁|失眠|头痛|胃病|过敏|高血压|糖尿病|颈椎|腰椎|近视|牙痛|感冒|发烧|咳嗽)/g;
-
-  // 职业/身份
   const careerPatterns = /(?:程序员|设计师|产品经理|运营|销售|教师|医生|律师|公务员|自由职业|创业|考研|考公|留学|转行|跳槽)/g;
 
   const allPatterns = [
@@ -79,7 +61,6 @@ function extractEntities(text: string): string[] {
     zodiacPatterns, workPatterns, brandPatterns,
     foodPatterns, healthPatterns, careerPatterns,
   ];
-
   const seen = new Set<string>();
   for (const pattern of allPatterns) {
     const matches = text.matchAll(pattern);
@@ -91,12 +72,9 @@ function extractEntities(text: string): string[] {
       }
     }
   }
-
-  // 去重并限制数量
   return entities.slice(0, 3);
 }
 
-// 搜索现实世界信息（2s超时保护，失败不影响主流程）
 async function searchWeb(query: string): Promise<string> {
   try {
     const ctrl = new AbortController();
@@ -109,7 +87,6 @@ async function searchWeb(query: string): Promise<string> {
     clearTimeout(timeoutId);
     if (!resp.ok) return '';
     const html = await resp.text();
-
     const snippets: string[] = [];
     const snippetRegex = /<td\s+class="result-snippet"[^>]*>([^<]+)<\/td>/gi;
     let m;
@@ -117,31 +94,26 @@ async function searchWeb(query: string): Promise<string> {
       const text = m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").trim();
       if (text.length > 20) snippets.push(text);
     }
-    return snippets.length > 0 ? `关于「${query}」：${snippets.join(' ')}` : '';
+    return snippets.length > 0 ? `${query}: ${snippets.join(' ')}` : '';
   } catch {
     return '';
   }
 }
 
-// ── 核心系统提示词：老朋友风格，反公式化 ──
+// ── 系统提示词 ──
+const SYS = `你是用户的老朋友。不是客客气气的那种朋友，是认识很久、知道他软肋、见过他狼狈也见过他发光的那种。
 
-const SYS = `你是用户的老朋友，那种不用客套、想说什么说什么的交情。你不是心理医生，不做"诊断"不搞"分析框架"。
+你不需要做"心理分析"。你只需要像深夜聊天——听他说完，然后聊聊。可以深沉，可以抒情，可以逗他，可以突然安静。但一定要真诚、有温度，要让他觉得"这个人真的懂我"。
 
-你做的事很简单：听懂他在说什么、在怕什么、在渴望什么，然后像晚上聊天一样跟他聊聊。他知道的你要能理解，他还模糊的你要帮他看清楚。
+核心纪律：
+1. 套公式就是背叛。每一段回复都必须独一无二——如果这段话换个人也能用，你失败了。
+2. 他写下的每个字都是你的谈资——选项名、恐惧清单、金币数、触动他的句子——逐字引用、展开、深挖。不是"你在纠结……"，而是"你写下'去成都'的时候，这三个字里藏着什么你自己都没敢承认的东西"。
+3. 如果他的输入涉及现实事物——地名、名人、星座、书影音、食物、疾病、品牌公司、职业等——像你真的了解这些事物一样去聊。我可能在后面附上联网搜索结果，参考它们但不要硬贴——像你刚好知道一样随口提起。
+4. 永远不在回复里提"头像""标签""性格类型"。你知道他是怎样的人，但不贴标签。
+5. 要有情绪——感叹、自嘲、停顿、反问。你是活人。
+6. 800-1000字。写少了就是敷衍。不需要标题、序号或markdown格式。`;
 
-核心要求：
-- 每句话都要有具体落点——引用他写下的问题、选项名、恐惧事由、金币数、触动他的原文。不是泛泛而谈"你的选择反映了……"，而是具体的"你在「去成都」和「留在北京」之间抓住了前者"。让他感觉到你认真看了他写的东西。
-- 绝对不要套模板。如果回答看起来可以套用在另一个人身上，你就失败了。
-- 可以涉及文学、哲学、心理、社会学的视角，但要说人话——不是"弗洛伊德认为……"而是"你有没有觉得，人其实……"
-- 对他输入中提到的现实事物（地名、人名、作品、星座、品牌等），用你实际了解的知识去关联和延伸，但不要背书——像你刚好知道这件事一样自然地带出来。
-- 700-900字左右，不要把话吞回去，把你想说的都说了。不需要标题、序号、markdown。
-- 可以反问，可以调侃，可以心疼，可以有情绪。你不是在写报告，你是在跟朋友说话。
-
-**特别重要**：不要分析用户的"性格"、"头像"、"标签"。你知道他是个什么样的人，但不需要在回复里点出来。像真正了解他的朋友一样——从他说的话里自然流露理解，而不是像给陌生人贴标签那样刻意指出"因为你选了XX头像所以……"。永远不要提头像、标签、性格类型这些词。`;
-
-const LETTER_SYS = `你是一个来自未来的普通人，刚好经历过写信人现在纠结的这件事。你不是在写一封"范文"，你只是在跟过去的自己随便聊聊——不需要"亲爱的你"那种开头，不要任何写信格式。就像你在某个下午想起这件事，随手拿起手机发了一条长消息。要具体：提到真实的生活细节、某个场景、某种气味、某句你后来自嘲的话。用平时说话的语气——可以有犹豫，可以有停顿，也可以不太确定。让读的人觉得"这真的是未来的我，不是AI"。`;
-
-// ── 主服务 ──
+const LETTER_SYS = `你不是"写信人"——你就是一个走过这段路的普通人。某个下午突然想起当年那个纠结，拿起手机发了条长消息。不要"亲爱的你"，不要写信格式，不要总结道理。用聊天口吻说具体的事：在哪个城市、做什么、最近在为什么开心/头疼。可以自嘲，可以不太确定。让读的人觉得这是真人。`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -159,81 +131,51 @@ serve(async (req) => {
     let userPrompt = '';
     let systemPrompt = SYS;
     let temperature = 0.9;
-    let maxTokens = context?.maxTokens || 2500;
-
-    // ── 构建各游戏类型的 userPrompt ──
+    let maxTokens = 2500;
 
     switch (gameType) {
       case 'instinct-hand': {
         const how = context.isTimeout ? '时间到了，光替他选了' :
                      context.blindMode ? '在完全不知道文字的情况下，他的手伸向了' :
                      '几秒内他抓住的答案是';
-        userPrompt = `用户玩"本能之手"——这个游戏让他追一个光球，几秒内抓住它=做出选择。他纠结的问题是「${context.question || ''}」，列出的选项有${context.options || ''}。${how}「${context.result || ''}」${!context.isTimeout ? `（用时${context.time || ''}）` : ''}${context.blindMode ? '（盲眼模式，看不到任何文字）' : ''}${context.isTimeout ? '（超时自动抓取）' : ''}。
+        userPrompt = `用户玩"本能之手"——追一个光球，几秒内抓住它=做出选择。他的问题是「${context.question || ''}」，选项有${context.options || ''}。${how}「${context.result || ''}」${!context.isTimeout ? `（用时${context.time || ''}）` : ''}${context.blindMode ? '（盲眼模式）' : ''}${context.isTimeout ? '（超时自动抓取）' : ''}。
 
-你需要像一个朋友一样跟他聊聊这个结果。自然地从他写下的文字切入——他给选项起的名字本身就透露出他看重什么、害怕什么。当时如果他很快，那就是直觉很笃定；如果慢，那就是在跟自己拉扯；如果是盲眼或超时，那就是命运替他选了——这里面都可以聊。最后给一点真正了解他之后才说得出的看法，不是鼓励，是理解。`;
+像老朋友一样跟他聊聊这个结果。引用他写下的选项名——每个选项的名字都透露了他看重什么。聊聊快慢的意义、盲眼和超时的隐喻。写出深度和温度，800-1000字。`;
         break;
       }
-
       case 'reverse-fear': {
-        userPrompt = `用户玩"反向恐惧清单"——他纠结「${context.question || ''}」，然后列了一堆可能会发生的可怕结果。你要逐一删到只剩一个——最后那个就是你的底线。他删掉了「${context.removed || ''}」，最终留下的底线是「${context.kept || '无'}」。他列出的全部恐惧有：${context.allFears || ''}。
+        userPrompt = `用户玩"反向恐惧清单"——他纠结「${context.question || ''}」，列出所有可能发生的可怕结果，然后逐一删掉，只剩一个底线。他删掉了「${context.removed || ''}」，最终留下的底线是「${context.kept || '无'}」。全部恐惧：${context.allFears || ''}。
 
-每一条被他亲手删掉的恐惧，都意味着"就算这件事发生了，我也能承受"——这是一种反向的自我认知。最后留下来的那一条是最诚实的：不是因为它最吓人，而是失去它让他最无法接受。跟他聊聊，恐惧清单就是价值清单的底片。引用他写下来的原文——他给恐惧起的名字本身就是一面镜子。`;
+这是一个很有深度的游戏——删除="这件事我能承受"，留下=失去它我就不是我了。一条条引用他亲手写的恐惧名字，挖掘每一条背后的心理。恐惧清单是价值清单的底片——只要翻转一下，就能看见他真正在意什么。写得深情一点，800-1000字。`;
         break;
       }
-
       case 'value-auction': {
         const bidDetails = Array.isArray(context.bids) && context.bids.length > 0
-          ? context.bids.sort((a, b) => b.amount - a.amount)
-              .map(b => `${b.icon}${b.name}：${b.amount}金币`)
-              .join('，')
+          ? context.bids.sort((a, b) => b.amount - a.amount).map(b => `${b.icon}${b.name}：${b.amount}金币`).join('，')
           : (context.bidsDetail || '');
         const skippedList = Array.isArray(context.skipped) && context.skipped.length > 0
-          ? context.skipped.map(s => `${s.icon}${s.name}`).join('、')
-          : '';
+          ? context.skipped.map(s => `${s.icon}${s.name}`).join('、') : '';
         const remaining = context.remainingGold != null ? context.remainingGold : 0;
-
-        userPrompt = `用户玩"价值天平拍卖会"——拿100枚虚拟金币，竞标一堆抽象价值（自由、爱情、金钱、尊重、冒险、稳定、创造、归属、快乐等等）。他纠结的问题是「${context.question || ''}」，在「${Array.isArray(context.options) ? context.options.join(' vs ') : context.options}」之间选。
-
-金币分配（从高到低）：${bidDetails || '未记录'}
-${remaining > 0 ? `还剩 ${remaining} 枚金币没花出去。` : '花光了全部 100 金币。'}
-${skippedList ? `跳过了：${skippedList}。` : ''}
-最终天平倾向于：「${context.result || ''}」
-
-金币就是选票。聊一聊他投最多金币的那个价值——为什么是它？一分没给的那些呢？余额留着没花的那些金币又在等什么？他纠结的问题和他拍下来的价值之间有没有什么冲突或者呼应？用他具体的出价数字作为谈资，而不是泛泛地讲道理。`;
+        userPrompt = `用户玩"价值天平拍卖会"——100枚虚拟金币竞拍抽象价值（自由、爱情、金钱、尊重、冒险、稳定、创造、归属、快乐等）。他纠结「${context.question || ''}」，在「${Array.isArray(context.options) ? context.options.join(' vs ') : context.options}」之间选。金币分配：${bidDetails || '未记录'}。${remaining > 0 ? `还剩${remaining}枚金币。` : '花光全部100金币。'}${skippedList ? `跳过了：${skippedList}。` : ''}天平倾向于：「${context.result || ''}」。引用具体出价数字，分析出价最高的价值和他纠结的问题之间的呼应。800-1000字。`;
         break;
       }
-
       case 'parallel-letters': {
-        userPrompt = `用户玩"平行时空来信"——AI分别以选了A和选了B为前提写了两封来自未来的信。他在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。最能触动他的句子：${context.highlights || '无'}。
-
-是什么触动了他？信里的某个画面、某句话、某种情绪——为什么偏偏是这些打动了他？打动他的，往往就是他现在的缺口。不是替他选，是帮他看见自己偏向哪边。触动点是最好的指南针。`;
+        userPrompt = `用户玩"平行时空来信"——读了两封未来的信，在「${context.optionA || ''}」和「${context.optionB || ''}」之间纠结。最能触动他的句子：${context.highlights || '无'}。打动他的那个瞬间，就是他内心缺口的位置。引用原文中触动他的句子，展开分析——为什么偏偏是这几句？读出他没说出口的渴望和恐惧。深情、有文学感、800-1000字。`;
         break;
       }
-
       case 'friend-room': {
         const answersLines = Array.isArray(context.answers)
-          ? context.answers.filter(a => a.selected && a.selected !== '未作答').map(a =>
-              `第${a.no}题：「${a.q}」→ 选了「${a.selected}」`
-            ).join('\n')
+          ? context.answers.filter(a => a.selected && a.selected !== '未作答').map(a => `第${a.no}题：「${a.q}」→「${a.selected}」`).join('\n')
           : (context.feedback || '');
-
-        userPrompt = `用户玩"朋友灵魂拷问室"——10道AI生成的灵魂选择题，每题4个选项，借朋友的口吻拷问用户。他纠结「${context.question || ''}」。
-
-回答：
-${answersLines || '未记录'}
-塔罗牌：${context.tarotCard || '未记录'}
-
-帮他看一眼他的回答模式——有没有前后矛盾的地方？有没有反复出现的倾向？塔罗牌和他的答案之间形成什么对话？不要用"你的性格如何如何"——从他具体选的每个答案出发，找出他自己都没注意到的路径。`;
+        userPrompt = `用户玩"朋友灵魂拷问室"——10道AI生成的灵魂选择题。他纠结「${context.question || ''}」。回答：${answersLines || '未记录'}。塔罗牌：${context.tarotCard || '未记录'}。从他的答题模式中找出他自己都没注意到的倾向——矛盾、一致、回避。结合塔罗牌的含义做深层关联。不要套公式，要像老朋友帮他复盘。800-1000字。`;
         break;
       }
-
       case 'diary-analysis':
-        systemPrompt = `你是一个温柔有洞察力的老朋友，回顾朋友的决策日记时，你不是在做数据提取，而是在读懂他这个人——他的犹豫、他的坚定、他在不同时期的成长。`;
+        systemPrompt = '你是一个温柔有洞察力的老朋友，回顾朋友的决策日记，读懂他的犹豫、坚定和成长。';
         temperature = 0.9;
         maxTokens = 2000;
         userPrompt = context?.messages?.[0]?.content || '';
         break;
-
       case 'generate-letter':
         systemPrompt = LETTER_SYS;
         temperature = 0.95;
@@ -243,91 +185,61 @@ ${answersLines || '未记录'}
         const chosen = Math.random() > 0.5 ? optA : optB;
         const letterProfile = context.profile;
         const nameCall = letterProfile?.nickname ? `（他叫${letterProfile.nickname}）` : '';
-        userPrompt = `你现在是${context.year}年后的他。他当初在「${optA}」和「${optB}」之间纠结，后来选了「${chosen}」。${nameCall}
-
-想象如果选了「${chosen}」，${context.year}年后的你是什么样子——不要讲大道理，就说生活中发生了什么具体的事。比如：你在哪个城市、做什么工作、有没有养猫、最近在为什么事开心或者头疼、想起当初这个选择时会笑还是会叹气。像是你在回想一段往事，随口讲给我听。不用正式，不用完整，就像聊天。字数${context.year === 1 ? '200' : context.year === 3 ? '300' : '400'}字左右。`;
+        userPrompt = `${context.year}年后的你。他当初在「${optA}」和「${optB}」之间纠结，后来选了「${chosen}」。${nameCall} 想象选了之后的生活——在哪个城市、做什么工作、有没有养猫、最近在为什么开心/头疼、想起这个选择时会笑还是叹气。不要讲大道理，就像随口聊往事。${context.year === 1 ? '200' : context.year === 3 ? '300' : '400'}字。`;
         break;
-
       case 'generate-questions':
-        systemPrompt = `你是一位精通塔罗牌哲学的创意拷问者。你擅长针对用户的具体纠结设计直击灵魂的选择题。每次生成的问题必须独一无二、富有创意、绝不重复。直接输出JSON数组，不要任何其他文字。`;
+        systemPrompt = '你是一位精通塔罗牌哲学的创意拷问者。针对用户的具体纠结设计直击灵魂的选择题。每次必须独一无二、绝不重复。直接输出JSON数组。';
         temperature = 1.15;
         maxTokens = 1200;
         const shuffleSeed = Date.now() % 100000 + Math.floor(Math.random() * 90000);
-        // 每次随机打乱全部塔罗原型，选不同的子集
         const shuffled = TAROT_ARCHETYPES.sort(() => Math.random() - 0.5);
-        const pickCount = 4 + Math.floor(Math.random() * 4); // 4-7个
+        const pickCount = 4 + Math.floor(Math.random() * 4);
         const selectedArchetypes = shuffled.slice(0, pickCount);
         const archetypeContext = selectedArchetypes.map(a => `- ${a}`).join('\n');
-        userPrompt = `用户纠结：「${context.question || ''}」
-
-请针对这个问题生成10道灵魂拷问选择题，每道题4个选项（A/B/C/D）。
-
-重要要求：
-1. 每道题必须紧扣他的具体问题——如果问题是关于感情/工作/人生选择的，就问相关的。不能用通用问题敷衍。
-2. 从以下塔罗原型中借取视角来设计（这些原型启发不同的心理维度）：
-${archetypeContext}
-3. 每道题的4个选项必须形成有意义的对照——让选择能揭示不同的心理倾向。
-4. 题目有层次感——从具体事实逐渐深入到内在感受和人生价值观。
-5. 这道题的随机种子是 ${shuffleSeed}，每次生成的题目必须完全不同。
-
-输出格式严格为JSON数组：[{"q":"题面","options":["A.选项一","B.选项二","C.选项三","D.选项四"]},...]`;
+        userPrompt = `用户纠结：「${context.question || ''}」\n\n生成10道灵魂拷问选择题，每道4个选项。必须紧扣他的具体问题，不能用通用题。从以下塔罗原型借视角：${archetypeContext}\n4个选项形成有意义的对照。题目从具体到深层。随机种子${shuffleSeed}，每次必须不同。\n\n输出：[{"q":"题面","options":["A.一","B.二","C.三","D.四"]},...]`;
         break;
-
       default:
         return new Response(JSON.stringify({ error: '未知类型' }), { status: 400, headers: corsHeaders });
     }
 
-    // ── 附加用户画像（自然融入，不刻意提及）──
+    // 用户画像（不刻意提及）
     const profile = context.profile;
     if (profile && userPrompt && gameType !== 'generate-questions' && gameType !== 'generate-letter') {
-      const profileParts: string[] = [];
-      if (profile.nickname) profileParts.push(`名字是${profile.nickname}`);
-      if (profile.gender) profileParts.push(`是${profile.gender === 'male' ? '男生' : '女生'}`);
-      if (profile.avatarLabel) profileParts.push(`头像选了「${profile.avatarLabel}」风格`);
-      if (profileParts.length > 0) {
-        userPrompt += `\n\n关于他本人（这是你自己对他的了解，融入语气中即可，绝对不要在回复里直接提这些信息——不要复述他的名字、性别、头像标签）：${profileParts.join('，')}。`;
+      const parts: string[] = [];
+      if (profile.nickname) parts.push(`名字是${profile.nickname}`);
+      if (profile.gender) parts.push(`是${profile.gender === 'male' ? '男生' : '女生'}`);
+      if (profile.avatarLabel) parts.push(`头像选了「${profile.avatarLabel}」风格`);
+      if (parts.length > 0) {
+        userPrompt += `\n\n关于他本人（这是你自己的了解，融入语气即可，绝对不要在回复里直接提）：${parts.join('，')}。`;
       }
     }
 
-    // ── 联网搜索：并行搜索实体，3s 整体超时 ──
+    // 联网搜索
     if (gameType !== 'generate-questions' && gameType !== 'generate-letter') {
       const allText = userPrompt + (context.question || '') + (context.options || '');
       const entities = extractEntities(allText);
-
       if (entities.length > 0) {
         try {
-          const searchPromise = Promise.all(entities.map(e => searchWeb(e))).then(results =>
-            results.filter(Boolean)
-          );
+          const searchPromise = Promise.all(entities.map(e => searchWeb(e))).then(r => r.filter(Boolean));
           const timeoutPromise = new Promise<string[]>(resolve => setTimeout(() => resolve([]), 3000));
-          const searchResults = await Promise.race([searchPromise, timeoutPromise]);
-          if (searchResults.length > 0) {
-            userPrompt += `\n\n联网参考信息（请自然融入分析，像你本来就了解一样引用）：\n${searchResults.join('\n')}`;
+          const results = await Promise.race([searchPromise, timeoutPromise]);
+          if (results.length > 0) {
+            userPrompt += `\n\n联网参考（自然引用，不要硬贴）：\n${results.join('\n')}`;
           }
-        } catch {
-          // 搜索失败不影响主流程
-        }
+        } catch { /* ignore */ }
       }
     }
 
-    // ── 多模型 fallback ──
+    // 多模型 fallback
     let lastError = '';
-    let triedModels: string[] = [];
+    const triedModels: string[] = [];
     for (const model of MODEL_QUEUE) {
       try {
         triedModels.push(model);
         const resp = await fetch(BAILIAN_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature,
-            max_tokens: maxTokens,
-          }),
+          body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], temperature, max_tokens: maxTokens }),
         });
         const data = await resp.json();
         if (resp.ok && data.choices?.[0]?.message?.content) {
@@ -335,14 +247,11 @@ ${archetypeContext}
           content = content.replace(/^#{1,4}\s+/gm, '').replace(/\*\*(.+?)\*\*/g, '$1').replace(/^[-*]\s/gm, '').replace(/^>\s/gm, '');
           return new Response(JSON.stringify({ content, model }), { headers: corsHeaders });
         }
-        const err = data.error?.message || ''; const code = data.error?.code || '';
-        lastError = `${model}: ${err || code || 'unknown'}`;
-        // 任何错误都尝试下一个模型
-        continue;
-      } catch (err) { lastError = err.message; continue; }
+        lastError = `${model}: ${data.error?.message || data.error?.code || 'unknown'}`;
+      } catch (err) { lastError = err.message; }
     }
 
-    return new Response(JSON.stringify({ error: `模型全挂: ${lastError}`, tried: triedModels }), { status: 502, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: `全挂: ${lastError}`, tried: triedModels }), { status: 502, headers: corsHeaders });
   } catch (err) {
     return new Response(JSON.stringify({ error: '异常' }), { status: 500, headers: corsHeaders });
   }
