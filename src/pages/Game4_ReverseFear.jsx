@@ -371,10 +371,10 @@ export default function Game4_ReverseFear() {
                       visible={true}
                       context={{
                         question,
-                        allFears: [...fears, ...removedFears].map((f) => f.label || f).join('、'),
-                        kept: fears.map((f) => f.label || f).join('、'),
-                        removed: removedFears.map((f) => f.label || f).join('、'),
-                        interactions: `用户写入了${fears.length + removedFears.length}个恐惧项，删除了${removedFears.length}个`,
+                        allFears: [...fears, ...removedFears].map((f) => f.text || f.label || '').join('、'),
+                        kept: fears.filter((f) => !f.removed).map((f) => f.text || f.label || '').join('、'),
+                        removed: removedFears.map((f) => f.text || f.label || '').join('、'),
+                        interactions: `写入了${fears.length + removedFears.length}个恐惧项，删除了${removedFears.length}个`,
                       }}
                     />
                   </motion.div>
