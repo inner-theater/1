@@ -15,14 +15,9 @@ export default function InsightPanel({ gameType, context, visible }) {
 
     generateInsight(gameType, context)
       .then((text) => {
-        if (!cancelled && text) {
-          setInsight(text);
-          setLoading(false);
-        }
+        if (!cancelled && text) { setInsight(text); setLoading(false); }
       })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .catch(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
   }, [gameType, visible, JSON.stringify(context)]);
@@ -32,31 +27,21 @@ export default function InsightPanel({ gameType, context, visible }) {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: 'auto' }}
-        exit={{ opacity: 0, height: 0 }}
+        initial={{ opacity: 0, maxHeight: 0, marginTop: 0 }}
+        animate={{ opacity: 1, maxHeight: 600, marginTop: 20 }}
+        exit={{ opacity: 0, maxHeight: 0, marginTop: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
         style={{
-          marginTop: '20px',
-          padding: '24px',
+          padding: '20px',
           borderRadius: '12px',
           background: 'rgba(26,10,46,0.7)',
           border: '1px solid rgba(96,165,250,0.2)',
-          overflow: 'hidden',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <span style={{ fontSize: '18px' }}>🧠</span>
-          <span style={{
-            fontSize: '13px',
-            color: '#60a5fa',
-            letterSpacing: '2px',
-            fontFamily: 'var(--font-display)',
-          }}>
+          <span style={{ fontSize: '13px', color: '#60a5fa', letterSpacing: '2px', fontFamily: 'var(--font-display)' }}>
             深度解读
-            <span style={{ marginLeft: '6px', fontSize: '10px', color: 'rgba(96,165,250,0.5)' }}>
-              AI 实时分析
-            </span>
           </span>
         </div>
 
@@ -67,14 +52,9 @@ export default function InsightPanel({ gameType, context, visible }) {
             AI 正在深度分析你的选择...
           </div>
         ) : insight ? (
-          <div style={{
-            color: 'rgba(255,255,255,0.75)',
-            fontSize: '14px',
-            lineHeight: 1.9,
-            whiteSpace: 'pre-wrap',
-          }}>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '14px', lineHeight: 1.9, whiteSpace: 'pre-wrap', margin: 0 }}>
             {insight}
-          </div>
+          </p>
         ) : null}
       </motion.div>
     </AnimatePresence>

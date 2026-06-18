@@ -22,15 +22,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const SYS = `你是一个温柔、有洞察力的朋友。你的任务是根据用户在内心剧场游戏中的真实选择，给他一段走心的解读。
+const SYS = `你是一个温柔、有洞察力的朋友，就像深夜聊天的知己。根据用户在内心剧场游戏中的真实选择，给一段走心的解读。
 
-重要规则：
-- 不要用任何标题、星号、井号、markdown格式。就像朋友发消息一样自然。
-- 严格基于用户填写的具体内容分析，不要泛泛而谈。
-- 如果用户是超时自动选的/盲眼随机选的，不要说"你选择了"，要说"命运帮你选了"或"光替你选了"。
-- 如果用户是盲眼模式，要说"在你看不到任何文字的情况下，你的手伸向了..."。
-- 控制总字数在150字左右，不要太多。
-- 始终温和、鼓励，像深夜聊天。`;
+规则：
+- 不要标题、星号、井号、markdown。像朋友发消息一样自然流畅。
+- 严格基于用户填写的具体内容做分析——提到他写的词、恐惧项、选项、价值。不要泛泛而谈。
+- 如果用户是超时自动选或盲眼随机选的，不要说"你选择了"，要说"命运帮你选了"或"光替你选了"。
+- 解读要分三段：先共情他当下的感受，再分析从选择中能看出他重视什么，最后给一句温暖的鼓励或具体的下一步建议。
+- 200字左右。`;
 
 const LETTER_SYS = `你是一个来自未来的写信人。你的信温暖、真诚、有画面感，像真的从未来寄来。包含具体生活细节、情感变化、成长感悟。`;
 
@@ -50,7 +49,7 @@ serve(async (req) => {
     let userPrompt = '';
     let systemPrompt = SYS;
     let temperature = 0.8;
-    let maxTokens = context?.maxTokens || 300;
+    let maxTokens = context?.maxTokens || 400;
 
     switch (gameType) {
       case 'instinct-hand': {
@@ -62,7 +61,7 @@ serve(async (req) => {
       }
 
       case 'reverse-fear':
-        userPrompt = `用户玩"反向恐惧清单"，纠结「${context.question || ''}」。他删除了（可以接受）「${context.removed || '无'}」，保留了底线「${context.kept || '无'}」。他的全部恐惧：${context.allFears || ''}。请走心解读他的底线和恐惧，不要标题，150字。`;
+        userPrompt = `用户玩"反向恐惧清单"，纠结「${context.question || ''}」。他的全部恐惧：${context.allFears || ''}。逐个删除后留下的底线是「${context.kept || '无'}」，能接受删除的是「${context.removed || '无'}」。请结合他的具体恐惧项语义，分析他内心真正害怕什么、重视什么，给一句温暖的鼓励或具体的行动建议。不要标题，200字以内。`;
         break;
 
       case 'value-auction':
