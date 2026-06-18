@@ -5,11 +5,11 @@ import QRCode from 'qrcode';
 const SITE_URL = 'https://inner-theater.github.io/1/';
 
 const GAMES = [
-  { name: '本能之手', icon: '🤲', tag: '直觉' },
-  { name: '反向恐惧清单', icon: '🎭', tag: '勇气' },
-  { name: '平行时空来信', icon: '✉️', tag: '未来' },
-  { name: '朋友灵魂拷问室', icon: '🔮', tag: '镜映' },
-  { name: '价值天平拍卖会', icon: '⚖️', tag: '理性' },
+  { name: '本能之手', icon: '🤲', tag: '直觉', desc: '让光球在5秒内替你抓一个答案' },
+  { name: '反向恐惧清单', icon: '🎭', tag: '勇气', desc: '删去恐惧，留下的就是底线' },
+  { name: '平行时空来信', icon: '✉️', tag: '未来', desc: 'AI为你写下不同道路的未来之信' },
+  { name: '朋友灵魂拷问室', icon: '🔮', tag: '镜映', desc: '借朋友的视角审视自己' },
+  { name: '价值天平拍卖会', icon: '⚖️', tag: '理性', desc: '用金币分配你的价值观' },
 ];
 
 function loadImage(src) {
@@ -249,14 +249,7 @@ async function generatePoster() {
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     ctx.font = '11px "Noto Sans SC", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(
-      g.tag === '直觉' ? '让光球在5秒内替你抓一个答案' :
-      g.tag === '勇气' ? '删去恐惧，留下的就是底线' :
-      g.tag === '未来' ? 'AI为你写下不同道路的未来之信' :
-      g.tag === '镜映' ? '借朋友的视角审视自己' :
-      g.tag === '理性' ? '用金币分配你的价值观',
-      cardX + 64, cy + 40
-    );
+    ctx.fillText(g.desc, cardX + 64, cy + 40);
   });
 
   // ===== QR Code 区域 =====
