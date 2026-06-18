@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
 
 const SITE_URL = 'https://inner-theater.github.io/1/';
-const POSTER_BG = '/images/A_premium_dark_psychological_t_2026-06-18T05-50-30.png';
+const POSTER_BG = './images/A_premium_dark_psychological_t_2026-06-18T05-50-30.png';
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
