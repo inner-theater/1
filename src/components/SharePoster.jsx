@@ -61,7 +61,6 @@ export default function SharePoster({ visible, onClose }) {
       alignItems: 'center', justifyContent: 'center',
       backdropFilter: 'blur(10px)',
     }} onClick={onClose}>
-      {/* 海报预览区 */}
       <div style={{
         maxHeight: '70vh', maxWidth: '90vw', aspectRatio: '750/1334',
         borderRadius: 12, overflow: 'hidden',
@@ -80,7 +79,6 @@ export default function SharePoster({ visible, onClose }) {
         )}
       </div>
 
-      {/* 操作按钮 */}
       {!generating && posterUrl && (
         <div style={{ display: 'flex', gap: 16, marginTop: 24 }} onClick={e => e.stopPropagation()}>
           <button onClick={handleDownload} style={{
@@ -111,6 +109,14 @@ export default function SharePoster({ visible, onClose }) {
   );
 }
 
+const ACTS = [
+  { num: '一', title: '本能之手', sub: 'INTUITION' },
+  { num: '二', title: '反向恐惧清单', sub: 'FEAR' },
+  { num: '三', title: '平行时空来信', sub: 'FUTURE' },
+  { num: '四', title: '朋友灵魂拷问室', sub: 'OTHERS' },
+  { num: '五', title: '价值天平拍卖会', sub: 'VALUE' },
+];
+
 async function generatePoster() {
   const W = 750, H = 1334;
 
@@ -138,11 +144,89 @@ async function generatePoster() {
   }
   ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, W, H);
 
-  const qrSize = 100, qrMargin = 24;
+  // 覆盖原五幕文字区域（暗化遮罩）
+  ctx.fillStyle = 'rgba(26, 8, 6, 0.92)';
+  ctx.fillRect(0, 720, W, 420);
+
+  // 画新的五幕文字 —— 垂直时间线风格
+  const startY = 760;
+  const lineX = W / 2;
+  const lineTop = startY - 20;
+  const lineBottom = startY + ACTS.length * 72 + 10;
+
+  // 中央时间线
+  ctx.strokeStyle = 'rgba(201, 168, 76, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(lineX, lineTop);
+  ctx.lineTo(lineX, lineBottom);
+  ctx.stroke();
+
+  // 顶部装饰点
+  ctx.fillStyle = 'rgba(201, 168, 76, 0.6)';
+  ctx.beginPath();
+  ctx.arc(lineX, lineTop, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ACTS.forEach((act, i) => {
+    const y = startY + i * 72;
+    const isLeft = i % 2 === 0;
+    const textX = isLeft ? lineX - 35 : lineX + 35;
+    const align = isLeft ? 'right' : 'left';
+
+    // 节点圆点
+    ctx.fillStyle = 'rgba(201, 168, 76, 0.9)';
+    ctx.beginPath();
+    ctx.arc(lineX, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(40, 15, 8, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 连接线到文字
+    ctx.strokeStyle = 'rgba(201, 168, 76, 0.25)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(lineX + (isLeft ? -5 : 5), y);
+    ctx.lineTo(textX + (isLeft ? -10 : 10), y);
+    ctx.stroke();
+
+    // 幕数标签
+    ctx.fillStyle = 'rgba(201, 168, 76, 0.7)';
+    ctx.font = '12px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = align;
+    ctx.fillText(`第${act.num}幕`, textX, y - 8);
+
+    // 标题
+    ctx.fillStyle = 'rgba(240, 215, 170, 0.95)';
+    ctx.font = '20px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = align;
+    ctx.fillText(act.title, textX, y + 16);
+
+    // 英文小字
+    ctx.fillStyle = 'rgba(201, 168, 76, 0.4)';
+    ctx.font = '10px Georgia, serif';
+    ctx.textAlign = align;
+    ctx.fillText(act.sub, textX, y + 32);
+  });
+
+  // 底部遮罩（覆盖原slogan和水印）
+  ctx.fillStyle = 'rgba(26, 8, 6, 0.95)';
+  ctx.fillRect(0, 1140, W, 194);
+
+  // 重新画slogan
+  ctx.fillStyle = 'rgba(201, 168, 76, 0.85)';
+  ctx.font = '18px "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('五个维度，一场与自己的对话', W / 2, 1175);
+
+  // 二维码区域（右下角）
+  const qrSize = 90, qrMargin = 20;
   const qrX = W - qrSize - qrMargin, qrY = H - qrSize - qrMargin;
+
   ctx.fillStyle = 'rgba(255,255,255,0.95)';
   ctx.beginPath();
-  ctx.roundRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 10);
+  ctx.roundRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 8);
   ctx.fill();
 
   const qrDataUrl = await QRCode.toDataURL(window.location.origin || 'https://inner-theater.github.io/1/', { width: qrSize, margin: 1 });
