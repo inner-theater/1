@@ -7,7 +7,7 @@ const games = [
     title: '本能之手',
     scene: '一',
     act: '直觉剧场',
-    description: '让光球替你选择——在3秒内抓住那个命中注定的答案',
+    description: '让光球替你选择——在5秒内抓住那个命中注定的答案',
     duration: '约 2 分钟',
     icon: '🤲',
   },

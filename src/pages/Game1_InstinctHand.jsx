@@ -397,7 +397,7 @@ export default function Game1_InstinctHand() {
   const [retriesLeft, setRetriesLeft] = useState(MAX_RETRIES);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const [gameKey, setGameKey] = useState(0);
-  const [interferenceOn, setInterferenceOn] = useState(false);
+  const interferenceOn = true;
   const [blindMode, setBlindMode] = useState(false);
   const [blindUnlocked, setBlindUnlocked] = useState(() => storage.get(BLIND_UNLOCK_KEY) || false);
   const [catchTime, setCatchTime] = useState(0);
@@ -656,36 +656,6 @@ export default function Game1_InstinctHand() {
                   + 添加选项
                 </button>
               )}
-
-              {/* Interference toggle */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                marginBottom: '16px', padding: '10px 16px',
-                borderRadius: '8px', background: interferenceOn ? 'rgba(201,168,76,0.1)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${interferenceOn ? 'rgba(201,168,76,0.3)' : 'rgba(255,255,255,0.06)'}`,
-              }}>
-                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', letterSpacing: '1px' }}>
-                  干扰模式
-                </span>
-                <button
-                  onClick={() => setInterferenceOn(!interferenceOn)}
-                  style={{
-                    width: '44px', height: '24px', borderRadius: '12px', border: 'none',
-                    background: interferenceOn ? '#c9a84c' : 'rgba(255,255,255,0.12)',
-                    position: 'relative', cursor: 'pointer', transition: 'background 0.3s',
-                  }}
-                >
-                  <motion.div
-                    animate={{ x: interferenceOn ? 20 : 2 }}
-                    style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fff', position: 'absolute', top: 2 }}
-                  />
-                </button>
-                {interferenceOn && (
-                  <span style={{ fontSize: '11px', color: 'rgba(201,168,76,0.7)' }}>
-                    大脑会干扰你，手指不会
-                  </span>
-                )}
-              </div>
 
               <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', textAlign: 'center', marginTop: '4px' }}>
                 {GAME_TIME} 秒倒计时 · 第一次自由抓取 · 第二次为盲眼随机

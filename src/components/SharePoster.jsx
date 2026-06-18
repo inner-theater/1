@@ -3,14 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
 
 const SITE_URL = 'https://inner-theater.github.io/1/';
-
-const GAMES = [
-  { name: '本能之手', icon: '🤲', desc: '光球替你在5秒内做出选择' },
-  { name: '反向恐惧清单', icon: '🎭', desc: '删去恐惧，留下真正的底线' },
-  { name: '平行时空来信', icon: '✉️', desc: 'AI生成不同未来的亲笔信' },
-  { name: '朋友灵魂拷问室', icon: '🔮', desc: '借朋友的视角照见自己' },
-  { name: '价值天平拍卖会', icon: '⚖️', desc: '100枚金币竞拍你的价值观' },
-];
+const POSTER_BG = '/images/A_premium_dark_psychological_t_2026-06-18T05-50-30.png';
 
 function loadImage(src) {
   return new Promise((resolve, reject) => {
@@ -23,281 +16,133 @@ function loadImage(src) {
 }
 
 async function generatePoster() {
-  const W = 750, H = 1420;
+  const W = 750, H = 1200;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
+  const C = W / 2;
 
-  // ===== 深紫渐变背景 =====
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#0a0218');
-  bg.addColorStop(0.3, '#150a28');
-  bg.addColorStop(0.65, '#1a0c32');
-  bg.addColorStop(1, '#0a0218');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // 稀疏星星
-  for (let i = 0; i < 35; i++) {
-    const sx = Math.random() * W;
-    const sy = 600 + Math.random() * (H - 650);
-    ctx.fillStyle = `rgba(255,255,255,${0.1 + Math.random() * 0.25})`;
-    ctx.beginPath();
-    ctx.arc(sx, sy, 0.5 + Math.random() * 1.2, 0, Math.PI * 2);
-    ctx.fill();
+  // 1. 加载AI生成的背景图，居中裁切 cover
+  const bgImg = await loadImage(POSTER_BG);
+  const imgRatio = bgImg.width / bgImg.height;
+  const canvasRatio = W / H;
+  let sx, sy, sWidth, sHeight;
+  if (imgRatio > canvasRatio) {
+    sHeight = bgImg.height;
+    sWidth = bgImg.height * canvasRatio;
+    sx = (bgImg.width - sWidth) / 2;
+    sy = 0;
+  } else {
+    sWidth = bgImg.width;
+    sHeight = bgImg.width / canvasRatio;
+    sx = 0;
+    sy = (bgImg.height - sHeight) / 2;
   }
+  ctx.drawImage(bgImg, sx, sy, sWidth, sHeight, 0, 0, W, H);
 
-  // ===== 舞台幕布 =====
-  ctx.save();
+  // 2. 顶部暗渐变 — 保证标题可读
+  const topDark = ctx.createLinearGradient(0, 0, 0, 360);
+  topDark.addColorStop(0, 'rgba(0,0,0,0.55)');
+  topDark.addColorStop(0.5, 'rgba(0,0,0,0.20)');
+  topDark.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = topDark;
+  ctx.fillRect(0, 0, W, 360);
 
-  // 幕布主体渐变
-  const curtainGrad = ctx.createLinearGradient(0, 0, 0, 380);
-  curtainGrad.addColorStop(0, '#8b0000');
-  curtainGrad.addColorStop(0.25, '#5c0a0a');
-  curtainGrad.addColorStop(0.55, '#3a0008');
-  curtainGrad.addColorStop(0.8, 'rgba(26,9,46,0.7)');
-  curtainGrad.addColorStop(1, 'rgba(15,5,30,0)');
-  ctx.fillStyle = curtainGrad;
+  // 3. 底部暗渐变 — 保证QR可读 + 覆盖水印
+  const bottomDark = ctx.createLinearGradient(0, H - 280, 0, H);
+  bottomDark.addColorStop(0, 'rgba(0,0,0,0)');
+  bottomDark.addColorStop(0.35, 'rgba(0,0,0,0.50)');
+  bottomDark.addColorStop(1, 'rgba(0,0,0,0.85)');
+  ctx.fillStyle = bottomDark;
+  ctx.fillRect(0, H - 280, W, 280);
 
-  // 左幕布 - 自然褶皱
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(355, 0);
-  ctx.quadraticCurveTo(340, 120, 355, 240);
-  ctx.quadraticCurveTo(240, 200, 140, 280);
-  ctx.quadraticCurveTo(70, 330, 0, 360);
-  ctx.closePath();
-  ctx.fill();
+  // 额外覆盖水印区域（右下角 170×60）
+  ctx.fillStyle = 'rgba(0,0,0,0.95)';
+  ctx.fillRect(W - 175, H - 65, 175, 65);
 
-  // 右幕布 - 对称
-  ctx.beginPath();
-  ctx.moveTo(W, 0);
-  ctx.lineTo(W - 355, 0);
-  ctx.quadraticCurveTo(W - 340, 120, W - 355, 240);
-  ctx.quadraticCurveTo(W - 240, 200, W - 140, 280);
-  ctx.quadraticCurveTo(W - 70, 330, W, 360);
-  ctx.closePath();
-  ctx.fill();
-
-  // 幕布内侧暗褶
-  ctx.fillStyle = 'rgba(60,0,12,0.35)';
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(100, 200, 30, 340);
-  ctx.quadraticCurveTo(140, 260, 60, 160);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(W, 0);
-  ctx.quadraticCurveTo(W - 100, 200, W - 30, 340);
-  ctx.quadraticCurveTo(W - 140, 260, W - 60, 160);
-  ctx.closePath();
-  ctx.fill();
-
-  // 金色流苏
-  for (let i = 0; i < 30; i++) {
-    const x = 55 + i * 22;
-    const dy = 290 + Math.sin(i * 0.55) * 8;
-    ctx.strokeStyle = `rgba(201,168,76,${0.25 + Math.sin(i * 0.4) * 0.12})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(x, dy);
-    ctx.quadraticCurveTo(x + (Math.random() - 0.5) * 5, dy + 12, x + (Math.random() - 0.5) * 6, dy + 20 + Math.random() * 8);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // ===== 聚光灯 =====
-  for (let i = 0; i < 3; i++) {
-    const lx = 180 + i * 195;
-    const spotGrad = ctx.createLinearGradient(0, 270, 0, 850);
-    spotGrad.addColorStop(0, 'rgba(255,245,210,0.08)');
-    spotGrad.addColorStop(0.2, 'rgba(255,245,210,0.03)');
-    spotGrad.addColorStop(1, 'rgba(255,245,210,0)');
-    ctx.fillStyle = spotGrad;
-    ctx.beginPath();
-    ctx.moveTo(lx - 130, 270);
-    ctx.lineTo(lx - 5, 850);
-    ctx.lineTo(lx + 5, 850);
-    ctx.lineTo(lx + 130, 270);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  // ===== 金点旋律装饰 =====
-  const numDots = 25;
-  const dotsLeft = 70, dotsRight = W - 70;
-  const dotBaseY = 310;
-
-  for (let i = 0; i < numDots; i++) {
-    const t = i / (numDots - 1);
-    const dx = dotsLeft + t * (dotsRight - dotsLeft);
-    const arch = Math.sin(t * Math.PI);
-    const dy = dotBaseY - arch * 30;
-    const dw = 14 + arch * 10;
-    const dh = 8 + arch * 5;
-    const da = 0.3 + arch * 0.35;
-
-    ctx.fillStyle = `rgba(201,168,76,${da})`;
-    ctx.beginPath();
-    ctx.ellipse(dx, dy, dw, dh, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // ===== 标题区 =====
+  // 4. 标题 — 居中大字
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
-  // 光晕
-  const glow = ctx.createRadialGradient(W / 2, 380, 20, W / 2, 380, 220);
-  glow.addColorStop(0, 'rgba(168,85,247,0.12)');
-  glow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(W / 2 - 220, 260, 440, 260);
+  // 英文装饰行
+  ctx.fillStyle = 'rgba(212, 171, 96, 0.35)';
+  ctx.font = '10px "Georgia", "Times New Roman", serif';
+  ctx.fillText('A  PSYCHOLOGICAL  PLAYHOUSE', C, 130);
 
-  // 装饰横线
-  const line = ctx.createLinearGradient(W / 2 - 130, 0, W / 2 + 130, 0);
-  line.addColorStop(0, 'transparent');
-  line.addColorStop(0.4, 'rgba(201,168,76,0.35)');
-  line.addColorStop(0.5, 'rgba(232,212,139,0.5)');
-  line.addColorStop(0.6, 'rgba(201,168,76,0.35)');
-  line.addColorStop(1, 'transparent');
-  ctx.strokeStyle = line;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - 130, 375);
-  ctx.lineTo(W / 2 + 130, 375);
-  ctx.stroke();
-
-  // 标题大字
+  // 主标题 — 阴影 + 金色
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 6;
   ctx.fillStyle = '#e8d48b';
-  ctx.font = 'bold 56px "Noto Serif SC", "SimSun", serif';
-  ctx.fillText('内心剧场', W / 2, 425);
+  ctx.font = 'bold 82px "PingFang SC", "Noto Sans SC", "STHeiti", sans-serif';
+  ctx.fillText('内心剧场', C, 220);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 
-  // 英文
-  ctx.fillStyle = 'rgba(232,212,139,0.38)';
-  ctx.font = 'italic 15px "Playfair Display", serif';
-  ctx.fillText('THE INNER THEATER', W / 2, 460);
+  // 英文副标题
+  ctx.fillStyle = 'rgba(232, 212, 139, 0.25)';
+  ctx.font = 'italic 11px "Georgia", serif';
+  ctx.fillText('T H E   I N N E R   T H E A T E R', C, 260);
 
-  // 第二道线
-  ctx.strokeStyle = line;
-  ctx.lineWidth = 1;
+  // 分隔线 + 圆点
+  ctx.strokeStyle = 'rgba(200, 160, 80, 0.20)';
+  ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.moveTo(W / 2 - 100, 488);
-  ctx.lineTo(W / 2 + 100, 488);
+  ctx.moveTo(C - 100, 290);
+  ctx.lineTo(C - 12, 290);
+  ctx.moveTo(C + 12, 290);
+  ctx.lineTo(C + 100, 290);
   ctx.stroke();
-
-  // Slogan
-  ctx.fillStyle = '#f5e6d3';
-  ctx.font = '17px "Noto Sans SC", sans-serif';
-  ctx.fillText('听见你心底的声音', W / 2, 522);
-
-  // 简介
-  ctx.fillStyle = 'rgba(255,255,255,0.42)';
-  ctx.font = '13px "Noto Sans SC", sans-serif';
-  ctx.fillText('一个为年轻人设计的决策辅助工具', W / 2, 565);
-  ctx.fillText('5个心理剧场，帮你听见自己心底早已存在的答案', W / 2, 590);
-
-  // ===== 五大剧场卡片 =====
-  const gridTop = 660;
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.font = '12px "Noto Serif SC", serif';
-  ctx.fillText('··· 五大剧场 ···', W / 2, gridTop);
-
-  // 双列卡片布局
-  const cols = 2;
-  const cardW = 290, cardH = 72;
-  const gapX = 24, gapY = 20;
-  const gridX = (W - (cols * cardW + (cols - 1) * gapX)) / 2;
-
-  GAMES.forEach((g, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    // 最后一行只有一张卡时居中对齐
-    const isLastRowSingle = (i === GAMES.length - 1) && (GAMES.length % cols === 1);
-    const cx = isLastRowSingle ? (W - cardW) / 2 : gridX + col * (cardW + gapX);
-    const cy = gridTop + 32 + row * (cardH + gapY);
-
-    // Card
-    ctx.fillStyle = 'rgba(25,12,50,0.45)';
-    ctx.strokeStyle = 'rgba(201,168,76,0.12)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.roundRect(cx, cy, cardW, cardH, 10);
-    ctx.fill();
-    ctx.stroke();
-
-    // 左侧金色竖线
-    ctx.fillStyle = 'rgba(201,168,76,0.25)';
-    ctx.fillRect(cx, cy, 3, cardH);
-
-    // 图标
-    ctx.font = '26px sans-serif';
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.fillText(g.icon, cx + 16, cy + 44);
-
-    // 名称
-    ctx.fillStyle = '#e8d48b';
-    ctx.font = 'bold 15px "Noto Sans SC", sans-serif';
-    ctx.fillText(g.name, cx + 54, cy + 28);
-
-    // 描述
-    ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    ctx.font = '11px "Noto Sans SC", sans-serif';
-    ctx.fillText(g.desc, cx + 54, cy + 52);
-  });
-
-  // ===== QR Code =====
-  const qrSectionTop = gridTop + 32 + 3 * (cardH + gapY) + 60;
-
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.font = '13px "Noto Serif SC", serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('———  扫码进入内心剧场  ———', W / 2, qrSectionTop);
-
-  const qrSize = 190;
-  const qrX = W / 2 - qrSize / 2;
-  const qrCardY = qrSectionTop + 18;
-
-  ctx.fillStyle = 'rgba(245,235,215,0.96)';
+  ctx.fillStyle = 'rgba(200, 160, 80, 0.25)';
   ctx.beginPath();
-  ctx.roundRect(qrX - 16, qrCardY - 16, qrSize + 32, qrSize + 32, 14);
+  ctx.arc(C, 290, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 口号
+  ctx.fillStyle = 'rgba(245, 230, 210, 0.70)';
+  ctx.font = '18px "PingFang SC", "STHeiti", sans-serif';
+  ctx.fillText('听见你心底的声音', C, 330);
+
+  // 5. 右下角二维码 — 白底圆角，放在暗渐变上
+  const qrSize = 90;
+  const qrX = W - qrSize - 42;
+  const qrY = H - qrSize - 42;
+
+  // 白底圆角卡片
+  ctx.fillStyle = 'rgba(245, 240, 230, 0.92)';
+  roundRect(ctx, qrX - 6, qrY - 6, qrSize + 12, qrSize + 12, 8);
   ctx.fill();
 
   const qrDataUrl = await QRCode.toDataURL(SITE_URL, {
-    width: qrSize, margin: 2,
-    color: { dark: '#1a0a30', light: '#f5e6d3' },
+    width: qrSize * 2,
+    margin: 1,
+    color: { dark: '#0a0a0a', light: '#f5ebd7' },
   });
   const qrImg = await loadImage(qrDataUrl);
-  ctx.drawImage(qrImg, qrX, qrCardY, qrSize, qrSize);
+  ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-  ctx.fillStyle = '#2a2020';
-  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
-  ctx.fillText('微信扫码即可进入', W / 2, qrCardY + qrSize + 30);
-
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.font = '10px sans-serif';
-  ctx.fillText('inner-theater.github.io/1', W / 2, qrCardY + qrSize + 50);
-
-  // ===== 底部 =====
-  const footerY = H - 110;
-  ctx.strokeStyle = 'rgba(201,168,76,0.12)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(130, footerY);
-  ctx.lineTo(W - 130, footerY);
-  ctx.stroke();
-
-  ctx.fillStyle = 'rgba(201,168,76,0.45)';
-  ctx.font = '14px "Noto Serif SC", serif';
-  ctx.fillText('不为你的纠结提供答案', W / 2, footerY + 32);
-  ctx.fillText('而是帮你听见自己心底早已存在的声音', W / 2, footerY + 58);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.font = '10px sans-serif';
-  ctx.fillText('THE INNER THEATER · 每个人内心都有一座剧场', W / 2, footerY + 86);
+  // 6. 底部一句话
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.font = '11px "PingFang SC", sans-serif';
+  ctx.fillText('不为你的纠结提供答案，而是帮你听见心底早已存在的声音', C, H - 22);
 
   return canvas.toDataURL('image/png');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 export default function SharePoster({ visible, onClose }) {
@@ -310,7 +155,7 @@ export default function SharePoster({ visible, onClose }) {
     try {
       const url = await generatePoster();
       setPosterUrl(url);
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Poster generation failed:', e); }
     setGenerating(false);
   };
 
@@ -337,11 +182,11 @@ export default function SharePoster({ visible, onClose }) {
             style={{
               maxWidth: '360px', width: '100%', maxHeight: '80vh',
               overflow: 'auto', borderRadius: '14px',
-              background: generating ? 'rgba(26,10,46,0.9)' : 'transparent',
+              background: generating ? '#0a0a0a' : 'transparent',
             }}
           >
             {generating ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#e8d48b' }}>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#d4ab60' }}>
                 <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5 }}
                   style={{ fontSize: '40px', display: 'block', marginBottom: '16px' }}>🎭</motion.span>
                 <p style={{ fontSize: '14px', letterSpacing: '2px' }}>正在生成分享海报...</p>
@@ -359,14 +204,14 @@ export default function SharePoster({ visible, onClose }) {
                 a.download = '内心剧场海报.png';
                 a.click();
               }} style={{
-                padding: '12px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #c9a84c, #e8d48b)',
-                color: '#1a0a2e', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', letterSpacing: '2px',
+                padding: '12px 28px', borderRadius: '10px', background: 'linear-gradient(135deg, #b48c3c, #d4ab60)',
+                color: '#0a0a0a', fontSize: '14px', fontWeight: 'bold', border: 'none', cursor: 'pointer', letterSpacing: '2px',
               }}>
                 保存海报
               </button>
               <button onClick={onClose} style={{
-                padding: '12px 28px', borderRadius: '10px', background: 'rgba(255,255,255,0.08)',
-                color: 'rgba(255,255,255,0.6)', fontSize: '14px', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+                padding: '12px 28px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.5)', fontSize: '14px', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
               }}>
                 关闭
               </button>

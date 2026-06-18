@@ -74,7 +74,7 @@ serve(async (req) => {
     let userPrompt = '';
     let systemPrompt = SYS;
     let temperature = 0.8;
-    let maxTokens = context?.maxTokens || 800;
+    let maxTokens = context?.maxTokens || 2500;
 
     switch (gameType) {
       case 'instinct-hand': {
@@ -179,14 +179,14 @@ ${answersLines || '未记录'}
       case 'diary-analysis':
         systemPrompt = `你是一个温柔有洞察力的老朋友，不是心理分析师。你在回顾朋友的决策日记，从中读懂他是一个什么样的人。`;
         temperature = 0.9;
-        maxTokens = 800;
+        maxTokens = 2000;
         userPrompt = context?.messages?.[0]?.content || '';
         break;
 
       case 'generate-letter':
         systemPrompt = LETTER_SYS;
         temperature = 0.95;
-        maxTokens = 600;
+        maxTokens = 1200;
         userPrompt = `以"${context.year}年后的你"身份写信。请在「${context.optionA}」和「${context.optionB}」中选一个（随机），想象选择后${context.year}年的具体生活。信中要自然提到这个选项的名字，增加代入感。字数${context.year===1?'200':context.year===3?'300':'400'}字。`;
         break;
 
