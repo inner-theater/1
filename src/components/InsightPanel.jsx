@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { generateInsight } from '../utils/ai-insight';
+import { useAuth } from '../contexts/AuthContext';
+import { getAvatarConfigById } from '../utils/profile';
 
 export default function InsightPanel({ gameType, context, visible }) {
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { profile } = useAuth();
 
   useEffect(() => {
     if (!visible || !gameType || !context) return;
@@ -13,14 +16,26 @@ export default function InsightPanel({ gameType, context, visible }) {
     setLoading(true);
     setInsight(null);
 
-    generateInsight(gameType, context)
+    // Merge profile info into context for personalized analysis
+    const avatarCfg = profile?.avatar ? getAvatarConfigById(profile.avatar) : null;
+    const enrichedContext = {
+      ...context,
+      profile: {
+        nickname: profile?.nickname || '',
+        gender: profile?.gender || '',
+        avatar: profile?.avatar || '',
+        avatarLabel: avatarCfg?.label || '',
+      },
+    };
+
+    generateInsight(gameType, enrichedContext)
       .then((text) => {
         if (!cancelled && text) { setInsight(text); setLoading(false); }
       })
       .catch(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [gameType, visible, JSON.stringify(context)]);
+  }, [gameType, visible, JSON.stringify(context), profile]);
 
   if (!visible) return null;
 

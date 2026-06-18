@@ -41,6 +41,8 @@ const corsHeaders = {
 
 const SYS = `你是一个温柔、有洞察力的朋友，就像深夜聊天的知己。根据用户在内心剧场游戏中的真实选择，给一段走心的解读。
 
+用户会提供他的个人画像（昵称、性别、头像风格），请在分析时自然地结合这些信息——比如他选的头像标签是"探索"，说明他渴望冒险和新奇，这会影响他做决策的潜意识。
+
 规则：
 - 不要标题、星号、井号、markdown。像朋友发消息一样自然流畅。
 - 严格基于用户填写的具体内容做分析——提到他写的词、恐惧项、选项、价值。不要泛泛而谈。
@@ -176,6 +178,18 @@ ${shuffledArchetypes.slice(0, 5).map(a => `   - ${a}`).join('\n')}
 
       default:
         return new Response(JSON.stringify({ error: '未知类型' }), { status: 400, headers: corsHeaders });
+    }
+
+    // 附加用户个人画像信息（头像、性别、昵称），让分析更个性化
+    const profile = context.profile;
+    if (profile && userPrompt && gameType !== 'generate-questions' && gameType !== 'generate-letter') {
+      const profileLines: string[] = [];
+      if (profile.nickname) profileLines.push(`昵称：${profile.nickname}`);
+      if (profile.gender) profileLines.push(`性别：${profile.gender === 'male' ? '男生' : '女生'}`);
+      if (profile.avatarLabel) profileLines.push(`头像选择了「${profile.avatarLabel}」风格`);
+      if (profileLines.length > 0) {
+        userPrompt += `\n\n关于用户自己：${profileLines.join('，')}。请在分析时自然地结合这些信息——头像风格反映了他的自我认知或向往。`;
+      }
     }
 
     // 多模型 fallback
