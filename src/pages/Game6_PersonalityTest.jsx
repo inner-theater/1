@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import storage from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarConfigById } from '../utils/profile';
+import { SUPABASE_ANON_KEY } from '../utils/supabase';
 
 // 大五人格题库 — 每维度10题，共50题，每次随机抽30题
 const FULL_QUESTION_BANK = [
@@ -98,7 +99,7 @@ async function getPersonalityAnalysis(scores, profile) {
   try {
     const r = await fetch(SUPABASE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify(context),
     });
     const d = await r.json();

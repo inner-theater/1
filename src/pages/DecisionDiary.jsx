@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import storage from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
+import { SUPABASE_ANON_KEY } from '../utils/supabase';
 
 const SUPABASE_FUNCTION_URL = 'https://uemvpdbuhzfomfstqias.supabase.co/functions/v1/generate-insight';
 const DAILY_LIMIT = 3;
@@ -62,7 +63,7 @@ ${diarySummary}
 
       const res = await fetch(SUPABASE_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
         body: JSON.stringify({
           gameType: 'diary-analysis',
           context: {
