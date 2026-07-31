@@ -161,7 +161,7 @@ export const storage = {
       .select('call_count')
       .eq('user_id', userId)
       .eq('usage_date', today)
-      .single();
+      .maybeSingle();
     return data?.call_count || 0;
   },
 
@@ -174,7 +174,7 @@ export const storage = {
       .select('id, call_count')
       .eq('user_id', userId)
       .eq('usage_date', today)
-      .single();
+      .maybeSingle();
 
     if (current) {
       await supabase.from('daily_ai_usage').update({ call_count: current.call_count + 1 }).eq('id', current.id);
