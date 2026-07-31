@@ -25,6 +25,10 @@ export default function DecisionDiary() {
   const [usage, setUsage] = useState(0);
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
   const [expandedId, setExpandedId] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [confirmAction, setConfirmAction] = useState(null); // { type: 'single', id } | { type: 'batch', ids }
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -41,12 +45,44 @@ export default function DecisionDiary() {
     }
   };
 
-  const handleDelete = async (entry) => {
-    const ok = window.confirm(`确认删除这条「${entry.game}」记录吗？\n\n${entry.question || ''}\n\n此操作不可撤销。`);
-    if (!ok) return;
-    await storage.removeDiaryEntry(entry.id);
-    setDiary((prev) => prev.filter((d) => d.id !== entry.id));
-    setExpandedId((cur) => (cur === entry.id ? null : cur));
+  const confirmDelete = (entry) => {
+    setConfirmAction({ type: 'single', id: entry.id });
+  };
+
+  const confirmBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    setConfirmAction({ type: 'batch', ids: [...selectedIds] });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!confirmAction || deleting) return;
+    setDeleting(true);
+    try {
+      const ids = confirmAction.type === 'batch' ? confirmAction.ids : [confirmAction.id];
+      const res = await storage.removeDiaryEntries(ids);
+      if (!res.ok) {
+        alert(`删除失败（云端拒绝了请求）：${res.error || '未知错误'}\n\n如果一直失败，可能是 Supabase 还没加 DELETE 策略，需要跑迁移 007_diary_delete_policy.sql`);
+      }
+      setDiary((prev) => prev.filter((d) => !ids.includes(d.id)));
+      setSelectedIds((prev) => prev.filter((id) => !ids.includes(id)));
+      setExpandedId((cur) => (ids.includes(cur) ? null : cur));
+    } finally {
+      setDeleting(false);
+      setConfirmAction(null);
+      if (selectMode && selectedIds.length === 0) setSelectMode(false);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === diary.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(diary.map((d) => d.id));
+    }
   };
 
   const runAnalysis = async () => {
@@ -203,6 +239,38 @@ ${diarySummary}
           </div>
         ) : (
           <>
+            {/* 批量操作栏 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              {selectMode ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.7)', fontSize: '13px', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={selectedIds.length === diary.length && diary.length > 0}
+                        onChange={toggleSelectAll} style={{ accentColor: '#c9a84c', width: '16px', height: '16px', cursor: 'pointer' }} />
+                      全选
+                    </label>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px' }}>已选 {selectedIds.length} / {diary.length}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => { setSelectMode(false); setSelectedIds([]); }}
+                      style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.15)', fontSize: '13px', cursor: 'pointer' }}>
+                      取消
+                    </button>
+                    <button onClick={confirmBatchDelete} disabled={selectedIds.length === 0}
+                      style={{ padding: '8px 18px', borderRadius: '8px', background: selectedIds.length > 0 ? 'rgba(248,113,113,0.2)' : 'rgba(255,255,255,0.06)', color: selectedIds.length > 0 ? '#f87171' : 'rgba(255,255,255,0.25)', border: selectedIds.length > 0 ? '1px solid rgba(248,113,113,0.4)' : '1px solid rgba(255,255,255,0.08)', fontSize: '13px', cursor: selectedIds.length > 0 ? 'pointer' : 'not-allowed' }}>
+                      删除所选 ({selectedIds.length})
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                  <button onClick={() => setSelectMode(true)}
+                    style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    ☑ 批量删除
+                  </button>
+                </div>
+              )}
+            </div>
             {Object.entries(grouped).map(([month, entries]) => (
               <motion.div key={month} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -214,16 +282,27 @@ ${diarySummary}
                   {entries.map((entry) => {
                     const expanded = expandedId === entry.id;
                     const fullTime = entry.timestamp ? new Date(entry.timestamp) : null;
+                    const isSelected = selectedIds.includes(entry.id);
                     return (
                       <motion.div key={entry.id} layout
-                        onClick={() => setExpandedId(expanded ? null : entry.id)}
+                        onClick={() => {
+                          if (selectMode) { toggleSelect(entry.id); return; }
+                          setExpandedId(expanded ? null : entry.id);
+                        }}
                         style={{
                           padding: '20px 24px', borderRadius: '12px',
-                          background: expanded ? 'rgba(45,25,70,0.85)' : 'rgba(35,20,56,0.6)',
-                          border: expanded ? '1px solid rgba(201,168,76,0.4)' : '1px solid rgba(201,168,76,0.15)',
-                          borderLeft: '3px solid #c9a84c', cursor: 'pointer',
+                          position: 'relative',
+                          background: expanded ? 'rgba(45,25,70,0.85)' : (isSelected ? 'rgba(248,113,113,0.12)' : 'rgba(35,20,56,0.6)'),
+                          border: isSelected ? '1px solid rgba(248,113,113,0.5)' : (expanded ? '1px solid rgba(201,168,76,0.4)' : '1px solid rgba(201,168,76,0.15)'),
+                          borderLeft: isSelected ? '3px solid #f87171' : '3px solid #c9a84c', cursor: 'pointer',
                           transition: 'background 0.2s, border 0.2s',
                         }}>
+                        {selectMode && (
+                          <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 2 }}>
+                            <input type="checkbox" checked={isSelected} readOnly
+                              style={{ accentColor: '#f87171', width: '18px', height: '18px', cursor: 'pointer', pointerEvents: 'none' }} />
+                          </div>
+                        )}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '12px', color: '#c9a84c', letterSpacing: '2px', marginBottom: '6px' }}>🎭 {entry.game}</div>
@@ -362,7 +441,7 @@ ${diarySummary}
                                   <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
                                     🕐 {fullTime ? fullTime.toLocaleString('zh-CN', { hour12: false }) : ''}
                                   </span>
-                                  <button onClick={(e) => { e.stopPropagation(); handleDelete(entry); }}
+                                  <button onClick={(e) => { e.stopPropagation(); confirmDelete(entry); }}
                                     style={{
                                       padding: '6px 14px', borderRadius: '6px',
                                       background: 'rgba(248,113,113,0.12)', color: '#f87171',
@@ -386,6 +465,62 @@ ${diarySummary}
             ))}
           </>
         )}
+
+        {/* 自定义删除确认弹窗 */}
+        <AnimatePresence>
+          {confirmAction && (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => { if (!deleting) setConfirmAction(null); }}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 1000,
+                background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '20px',
+              }}>
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'linear-gradient(160deg, #2d1946 0%, #1a0a2e 100%)',
+                  borderRadius: '16px', padding: '32px 28px', maxWidth: '420px', width: '100%',
+                  border: '1px solid rgba(248,113,113,0.3)',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '44px', marginBottom: '12px' }}>🗑</div>
+                  <h3 style={{ fontSize: '18px', color: '#f87171', letterSpacing: '2px', marginBottom: '8px' }}>
+                    确认删除
+                  </h3>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', lineHeight: 1.7 }}>
+                    {confirmAction.type === 'batch'
+                      ? <>将永久删除你选择的 <strong style={{ color: '#f87171' }}>{confirmAction.ids.length}</strong> 条记录，云端和本地都会清掉。</>
+                      : <>将永久删除这条「<strong style={{ color: '#f87171' }}>{diary.find((d) => d.id === confirmAction.id)?.game || '记录'}</strong>」记录，云端和本地都会清掉。</>}
+                    <br />此操作不可撤销。
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button onClick={() => setConfirmAction(null)} disabled={deleting}
+                    style={{
+                      flex: 1, padding: '12px 0', borderRadius: '10px', fontSize: '14px',
+                      background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)',
+                      border: '1px solid rgba(255,255,255,0.15)', cursor: deleting ? 'not-allowed' : 'pointer',
+                    }}>
+                    取消
+                  </button>
+                  <button onClick={handleDeleteConfirmed} disabled={deleting}
+                    style={{
+                      flex: 1, padding: '12px 0', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold',
+                      background: deleting ? 'rgba(248,113,113,0.3)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: '#fff', border: 'none', cursor: deleting ? 'not-allowed' : 'pointer',
+                    }}>
+                    {deleting ? '删除中...' : '确认删除'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

@@ -112,21 +112,39 @@ export const storage = {
     return diary;
   },
 
-  // 删除日记条目（同时清服务端 + 本地）
+  // 删除日记条目（同时清服务端 + 本地）。返回 { ok, error }
   async removeDiaryEntry(id) {
-    if (id == null) return;
-    // 服务端：仅当 id 是数字（bigserial）时调 supabase
-    if (typeof id === 'number' || (/^\d+$/.test(String(id)))) {
+    return this.removeDiaryEntries([id]);
+  },
+
+  // 批量删除日记条目。返回 { ok, error }
+  async removeDiaryEntries(ids) {
+    const validIds = (ids || []).filter((id) => id != null);
+    if (validIds.length === 0) return { ok: true };
+    const userId = await remote.getUser();
+    let serverError = null;
+    // 服务端：数字 id（bigserial）才属于云端；base36 字符串是本地 fallback 条目
+    const serverIds = validIds.filter((id) => typeof id === 'number' || /^\d+$/.test(String(id)));
+    if (userId && serverIds.length > 0) {
       try {
-        await supabase.from('decision_diary').delete().eq('id', Number(id));
+        const { error } = await supabase
+          .from('decision_diary')
+          .delete()
+          .eq('user_id', userId)
+          .in('id', serverIds.map((id) => Number(id)));
+        if (error) serverError = error.message;
       } catch (e) {
-        console.warn('removeDiaryEntry supabase 失败:', e?.message);
+        serverError = e?.message || '网络错误';
       }
     }
     // 本地兜底（id 是 base36 字符串）
-    const diary = (local.get('diary') || []).filter((e) => e.id !== id);
+    const diary = (local.get('diary') || []).filter((e) => !validIds.includes(e.id));
     local.set('diary', diary);
-    return diary;
+    if (serverError) {
+      console.warn('removeDiaryEntries supabase 失败:', serverError);
+      return { ok: false, error: serverError };
+    }
+    return { ok: true };
   },
 
   // 决策博物馆（Supabase 公共可见）
