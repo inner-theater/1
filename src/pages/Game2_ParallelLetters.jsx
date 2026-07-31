@@ -323,7 +323,21 @@ export default function Game2_ParallelLetters() {
                     optionB,
                     chosen: letterMeta?.chosen || '',
                     other: letterMeta?.other || '',
-                    highlights: Object.keys(highlights || {}).join('、'),
+                    highlights: Object.entries(highlights || {}).filter(([, v]) => v).map(([k]) => {
+                      // k 形如 "0-今天早上出门..."，拆出 letterIdx 和完整句子
+                      const dashIdx = k.indexOf('-');
+                      const letterIdx = Number(k.slice(0, dashIdx));
+                      const prefix = k.slice(dashIdx + 1);
+                      // 用 prefix 去对应信里找完整原文（letters[letterIdx].content 按 "。" 切句后匹配）
+                      const fullSentence = (letters?.[letterIdx]?.content || '').split('。').map((s) => s.trim()).find((s) => s.startsWith(prefix));
+                      return fullSentence || prefix;
+                    }).join('\n'),
+                    // 把三封信的标题和完整内容也传过去，AI 才能真正读懂信里写的什么
+                    letters: (letters || []).map((l) => ({ title: l.title, content: l.content })),
+                    profile: {
+                      nickname: profile?.nickname || '',
+                      gender: profile?.gender || '',
+                    },
                   }}
                 />
               </div>

@@ -167,17 +167,29 @@ serve(async (req) => {
       case 'parallel-letters': {
         const chosen = context.chosen || '其中一条路';
         const other = context.other || '另一条路';
-        userPrompt = `用户玩"平行时空来信"——读了三封来自未来的信（1年后、3年后、10年后）。但有个关键设计：这三封信写的都是同一条路的未来，不是A和B各一封信。用户在读的时候完全不知道这是哪条路，纯粹凭文字感受。
+        const highlightsRaw = (context.highlights || '').trim();
+        const hasHighlights = highlightsRaw && highlightsRaw !== '无';
+        const lettersBlock = Array.isArray(context.letters) && context.letters.length > 0
+          ? `\n\n以下是三封信的完整内容（你必须读完，再开始聊）：\n\n` +
+            context.letters.map((l, i) => `【${i + 1}】${l.title || ''}\n${l.content || ''}`).join('\n\n')
+          : '';
+        userPrompt = `你和一个老朋友聊他刚玩完的"平行时空来信"。
 
-揭晓：这三封信来自「${chosen}」的未来。他没读到的另一条路是「${other}」。
+事情是这样的——他读了三封信，分别来自他选了的那条路的1年后、3年后、10年后。但有个设计：他在读的时候不知道是哪条路，是盲测。三封信合在一起，勾勒的是同一条路的生活质感，他完全是凭文字感受来判断的。
 
-他纠结的是「${context.optionA || ''}」和「${context.optionB || ''}」。最能触动他的句子：${context.highlights || '无'}。
+揭晓时刻：这三封信来自「${chosen}」的未来。他没读到的另一条路是「${other}」。他纠结的是「${context.optionA || ''}」还是「${context.optionB || ''}」。
 
-请像老朋友揭晓谜底：
-1. 先告诉他这个盲测设计——他读的三封信都是「${chosen}」的未来，他完全是凭直觉感受了这条路的生活。
-2. 分析他标记的触动句子——在不知道是哪条路的情况下，这些句子纯粹反映了他对某种生活方式的真实渴望（不是被选项名字影响的）。为什么偏偏是这几句？读出他没说出口的渴望和恐惧。
-3. 盲测的意义：去掉名字标签后，他的直觉更诚实。理性上的"A更好"或"B更安稳"可能都是标签，但文字里的生活质感才是真的。
-4. 500字以上，不要分点，不要标题，就是聊天。`;
+${lettersBlock}
+
+${hasHighlights
+  ? `读完之后，他做了个小动作——从三封信里挑了几句让他心动的话。这些句子的原文是：\n\n${highlightsRaw}\n\n仔细看这些句子。在不知道选项名字、不带任何标签的情况下，他偏偏被这些句子戳到了。这暴露了他潜意识里最想要的生活质感。逐字引用、深挖这些句子——他写下的每个字都是你的谈资。`
+  : `读完之后，他没有在三封信里挑出任何一句来划线。一句都没有。\n\n这件事本身值得聊聊——他不是没读完，也不是没感受。三封信一字不漏地读完了，只是没找到让他愿意停下来的句子。这可能意味着「${chosen}」这条路勾勒的生活，对他没有刺痛感，也没有期待感。他不讨厌这条路，但他也不渴望这条路。顺着这个洞察往下聊。`}
+
+请像老朋友一样跟他聊聊：
+- 这三封信合在一起，「${chosen}」这条路上的生活到底是什么质感？不要抽象地描述，写具体的场景、具体的人、具体的早晨和傍晚、具体的得与失
+- 信里如果提到具体的地方（城市、街区）、工作（某种职业的日常）、食物、品牌公司、书影音等，结合你了解的常识自然展开——就像你刚好熟悉这些东西随口提起，别像在背诵资料
+- 不要分点，不要小标题，不要"你知道吗"这种开场白，不要"1.2.3.4."。就是一段一段的聊天，500字以上
+- 绝对不要在回复里直接复述"他叫XX"、"他是男生"、"他选了XX头像"这种背景信息——你知道就行，不要变成贴标签的复读机`;
         break;
       }
       case 'friend-room': {
@@ -255,15 +267,16 @@ ${archetypeContext}
         return new Response(JSON.stringify({ error: '未知类型' }), { status: 400, headers: corsHeaders });
     }
 
-    // 用户画像（不刻意提及）
+    // 用户画像（融入语气，绝不在回复里直接复述字面信息）
     const profile = context.profile;
     if (profile && userPrompt && gameType !== 'generate-questions' && gameType !== 'generate-letter') {
       const parts: string[] = [];
-      if (profile.nickname) parts.push(`名字是${profile.nickname}`);
-      if (profile.gender) parts.push(`是${profile.gender === 'male' ? '男生' : '女生'}`);
-      if (profile.avatarLabel) parts.push(`头像选了「${profile.avatarLabel}」风格`);
+      if (profile.nickname) parts.push(`他叫${profile.nickname}`);
+      if (profile.gender) parts.push(profile.gender === 'male' ? '他是男生' : '她是女生');
+      // 头像 label 不传——系统提示词明令禁止 AI 提头像/标签/性格类型，
+      // 让 AI 通过用户的选项选择和信的内容自己感受，避免"你选了公正头像"这种复读机腔调
       if (parts.length > 0) {
-        userPrompt += `\n\n关于他本人（这是你自己的了解，融入语气即可，绝对不要在回复里直接提）：${parts.join('，')}。`;
+        userPrompt += `\n\n（这些是关于他的背景，你自然知道就行——绝对不要在回复里直接说"你叫什么名字"或复述这些字面信息）\n${parts.join('；')}。`;
       }
     }
 

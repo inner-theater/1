@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 dist_old/
 dist_old2/
+dist_old3/
