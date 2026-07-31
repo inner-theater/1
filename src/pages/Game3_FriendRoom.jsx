@@ -260,10 +260,12 @@ export default function Game3_FriendRoom() {
   const [hasDrawnCard, setHasDrawnCard] = useState(false);
   const [friendAnswers, setFriendAnswers] = useState([]);
   const [shareCode, setShareCode] = useState('');
+  const [loadError, setLoadError] = useState(null);
 
   const generateAIQuestions = async () => {
     if (!question.trim()) return;
     setLoading(true);
+    setLoadError(null);
     const currentQ = question.trim();
     try {
       const qs = await generateQuestions(currentQ);
@@ -281,21 +283,17 @@ export default function Game3_FriendRoom() {
         setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
         setShareCode(code);
         setStep('sharing');
-      } else {
-        const fallbackQs = getDefaultQuestions(currentQ);
-        setQuestions(fallbackQs);
-        const code = await storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
-        setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
-        setStep('sharing');
+        setLoading(false);
+        return;
       }
-    } catch {
-      const fallbackQs = getDefaultQuestions(currentQ);
-      setQuestions(fallbackQs);
-      const code = await storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
-      setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
-      setStep('sharing');
+      // 返回题目数 < 5 → AI 解析失败
+      throw new Error('AI 返回的题目格式不完整（不足 5 道）');
+    } catch (e) {
+      // 不再走 fallback 写死的固定题库——直接告诉用户出错，让 ta 重试
+      console.error('[Game3] AI 生成题目失败:', e?.message || e);
+      setLoadError(`AI 生成题目失败：${e?.message || '网络或服务端异常'}\n\n请检查网络后点击「重新生成」再试一次。`);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGeneratePoster = async () => {
@@ -369,8 +367,13 @@ export default function Game3_FriendRoom() {
                   color: question.trim() ? '#1a0a2e' : 'rgba(255,255,255,0.3)',
                   fontSize: '16px', fontWeight: 'bold', letterSpacing: '3px', border: 'none',
                   cursor: question.trim() ? 'pointer' : 'not-allowed' }}>
-                {loading ? 'AI 正在生成个性化题目...' : '生成灵魂拷问题目'}
+                {loading ? 'AI 正在生成个性化题目...' : (loadError ? '🔄 重新生成' : '生成灵魂拷问题目')}
               </button>
+              {loadError && (
+                <div style={{ marginTop: '16px', padding: '14px 16px', borderRadius: '10px', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)' }}>
+                  <div style={{ fontSize: '13px', color: '#f87171', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{loadError}</div>
+                </div>
+              )}
             </motion.div>
           )}
 
