@@ -277,21 +277,21 @@ export default function Game3_FriendRoom() {
         }));
         setQuestions(formatted);
         // 预创建分享链接
-        const code = storage.createShareLink('friend-room', { question: currentQ, questions: formatted });
+        const code = await storage.createShareLink('friend-room', { question: currentQ, questions: formatted });
         setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
         setShareCode(code);
         setStep('sharing');
       } else {
         const fallbackQs = getDefaultQuestions(currentQ);
         setQuestions(fallbackQs);
-        const code = storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
+        const code = await storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
         setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
         setStep('sharing');
       }
     } catch {
       const fallbackQs = getDefaultQuestions(currentQ);
       setQuestions(fallbackQs);
-      const code = storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
+      const code = await storage.createShareLink('friend-room', { question: currentQ, questions: fallbackQs });
       setShareUrl(`https://inner-theater.github.io/1/#/answer/${code}`);
       setStep('sharing');
     }

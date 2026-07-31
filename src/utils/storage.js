@@ -143,13 +143,37 @@ export const storage = {
     return { success: true };
   },
 
-  // 分享链接
-  createShareLink(gameType, data) {
+  // 分享链接 — 持久化到 Supabase，让朋友扫码能跨设备看到题目
+  async createShareLink(gameType, data) {
     const code = Date.now().toString(36).toUpperCase();
-    this.set(`share_${code}`, { gameType, data, timestamp: new Date().toISOString() });
+    let creatorId = null;
+    try {
+      const userId = await remote.getUser();
+      creatorId = userId || null;
+    } catch { /* 匿名也能分享 */ }
+    const { error } = await supabase
+      .from('share_links')
+      .insert({ code, game_type: gameType, data, creator_id: creatorId });
+    if (error) {
+      console.error('createShareLink supabase 写入失败，fallback 到 localStorage:', error.message);
+      this.set(`share_${code}`, { gameType, data, timestamp: new Date().toISOString() });
+    }
     return code;
   },
-  getShareData(code) { return this.get(`share_${code}`); },
+
+  async getShareData(code) {
+    if (!code) return null;
+    // 先查服务端
+    const { data, error } = await supabase
+      .from('share_links')
+      .select('game_type, data')
+      .eq('code', code)
+      .maybeSingle();
+    if (data) return { gameType: data.game_type, data: data.data };
+    // 服务端查不到时尝试 localStorage（兜底旧数据 / 离线场景）
+    if (error) console.warn('getShareData supabase 查询失败:', error.message);
+    return this.get(`share_${code}`) || null;
+  },
 
   // AI 调用计数
   async getDailyUsage() {
