@@ -24,6 +24,7 @@ export default function DecisionDiary() {
   const [loading, setLoading] = useState(false);
   const [usage, setUsage] = useState(0);
   const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
+  const [expandedId, setExpandedId] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -38,6 +39,14 @@ export default function DecisionDiary() {
       const u = await storage.getDailyUsage();
       setUsage(typeof u === 'number' ? u : 0);
     }
+  };
+
+  const handleDelete = async (entry) => {
+    const ok = window.confirm(`确认删除这条「${entry.game}」记录吗？\n\n${entry.question || ''}\n\n此操作不可撤销。`);
+    if (!ok) return;
+    await storage.removeDiaryEntry(entry.id);
+    setDiary((prev) => prev.filter((d) => d.id !== entry.id));
+    setExpandedId((cur) => (cur === entry.id ? null : cur));
   };
 
   const runAnalysis = async () => {
@@ -202,23 +211,127 @@ ${diarySummary}
                   <div style={{ flex: 1, height: '1px', background: 'rgba(201,168,76,0.1)' }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {entries.map((entry) => (
-                    <motion.div key={entry.id} whileHover={{ x: 4 }}
-                      style={{ padding: '20px 24px', borderRadius: '12px', background: 'rgba(35,20,56,0.6)', border: '1px solid rgba(201,168,76,0.15)', borderLeft: '3px solid #c9a84c' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ fontSize: '12px', color: '#c9a84c', letterSpacing: '2px', marginBottom: '6px' }}>🎭 {entry.game}</div>
-                          <p style={{ color: '#f5e6d3', fontSize: '15px', marginBottom: '8px' }}>{entry.question || '记录了一次选择'}</p>
-                          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
-                            {entry.result ? (Array.isArray(entry.result) ? `底线：${entry.result.join('、')}` : entry.result) : ''}
+                  {entries.map((entry) => {
+                    const expanded = expandedId === entry.id;
+                    const fullTime = entry.timestamp ? new Date(entry.timestamp) : null;
+                    return (
+                      <motion.div key={entry.id} layout
+                        onClick={() => setExpandedId(expanded ? null : entry.id)}
+                        style={{
+                          padding: '20px 24px', borderRadius: '12px',
+                          background: expanded ? 'rgba(45,25,70,0.85)' : 'rgba(35,20,56,0.6)',
+                          border: expanded ? '1px solid rgba(201,168,76,0.4)' : '1px solid rgba(201,168,76,0.15)',
+                          borderLeft: '3px solid #c9a84c', cursor: 'pointer',
+                          transition: 'background 0.2s, border 0.2s',
+                        }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '12px', color: '#c9a84c', letterSpacing: '2px', marginBottom: '6px' }}>🎭 {entry.game}</div>
+                            <p style={{ color: '#f5e6d3', fontSize: '15px', marginBottom: '8px', wordBreak: 'break-word' }}>
+                              {entry.question || '记录了一次选择'}
+                            </p>
+                            {entry.result && !expanded && (
+                              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {Array.isArray(entry.result) ? `底线：${entry.result.join('、')}` : entry.result}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
+                              {fullTime ? fullTime.toLocaleDateString('zh-CN') : ''}
+                            </span>
+                            <motion.span
+                              animate={{ rotate: expanded ? 90 : 0 }}
+                              transition={{ duration: 0.2 }}
+                              style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: 1 }}
+                            >▶</motion.span>
                           </div>
                         </div>
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
-                          {new Date(entry.timestamp).toLocaleDateString('zh-CN')}
-                        </span>
-                      </div>
-                    </motion.div>
-                  ))}
+
+                        <AnimatePresence>
+                          {expanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.25 }}
+                              style={{ overflow: 'hidden' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed rgba(201,168,76,0.2)' }}>
+                                {entry.result && (
+                                  <div style={{ marginBottom: '14px' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px', marginBottom: '6px' }}>结果</div>
+                                    <div style={{ color: '#f5e6d3', fontSize: '14px', lineHeight: 1.7, wordBreak: 'break-word' }}>
+                                      {Array.isArray(entry.result) ? (
+                                        <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                                          {entry.result.map((r, i) => <li key={i} style={{ marginBottom: '4px' }}>{r}</li>)}
+                                        </ul>
+                                      ) : entry.result}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* 按 type 渲染专属详情 */}
+                                {entry.type === 'reverse-fear' && Array.isArray(entry.result) && entry.result.length > 0 && (
+                                  <div style={{ marginBottom: '14px' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px', marginBottom: '6px' }}>删去的恐惧</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', lineHeight: 1.7 }}>
+                                      你从所有恐惧中删掉了 {entry.result.length} 项，最终只留下了这条底线。
+                                    </div>
+                                  </div>
+                                )}
+
+                                {entry.type === 'personality-test' && entry.scores && (
+                                  <div style={{ marginBottom: '14px' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px', marginBottom: '8px' }}>大五人格分数</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                                      {Object.entries(entry.scores).map(([k, v]) => {
+                                        const labels = { openness: '🎨 开放性', conscientiousness: '📋 尽责性', extraversion: '🎤 外向性', agreeableness: '🤝 宜人性', neuroticism: '🧘 情绪稳定性' };
+                                        return (
+                                          <div key={k} style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.15)' }}>
+                                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{labels[k] || k}</div>
+                                            <div style={{ fontSize: '16px', color: '#e8d48b', fontWeight: 'bold' }}>{v}<span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>/10</span></div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {entry.type === 'parallel-letters' && entry.chosen && (
+                                  <div style={{ marginBottom: '14px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(0,0,0,0.25)' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px', marginBottom: '6px' }}>选项</div>
+                                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+                                      A · <span style={{ color: entry.chosen === entry.optionA ? '#e8d48b' : 'rgba(255,255,255,0.4)' }}>{entry.optionA}</span><br />
+                                      B · <span style={{ color: entry.chosen === entry.optionB ? '#e8d48b' : 'rgba(255,255,255,0.4)' }}>{entry.optionB}</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
+                                    🕐 {fullTime ? fullTime.toLocaleString('zh-CN', { hour12: false }) : ''}
+                                  </span>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDelete(entry); }}
+                                    style={{
+                                      padding: '6px 14px', borderRadius: '6px',
+                                      background: 'rgba(248,113,113,0.12)', color: '#f87171',
+                                      border: '1px solid rgba(248,113,113,0.3)',
+                                      fontSize: '12px', cursor: 'pointer',
+                                      display: 'flex', alignItems: 'center', gap: '4px',
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248,113,113,0.2)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(248,113,113,0.12)'}
+                                  >🗑 删除</button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             ))}

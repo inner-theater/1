@@ -29,6 +29,8 @@ export default function Game2_ParallelLetters() {
       setStep('letters');
       storage.addDiaryEntry({
         game: '平行时空来信',
+        question: `${optionA} vs ${optionB}`,
+        result: `选了「${chosen}」（未选：${other}）`,
         optionA,
         optionB,
         chosen,

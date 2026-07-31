@@ -561,8 +561,13 @@ export default function Game6_PersonalityTest() {
     // 保存到日记
     storage.addDiaryEntry({
       game: '人格测试',
+      question: '基于大五人格模型（OCEAN）的 25 题人格画像',
+      result: Object.entries(finalScores)
+        .map(([k, v]) => `${({openness:'开放性',conscientiousness:'尽责性',extraversion:'外向性',agreeableness:'宜人性',neuroticism:'情绪稳定性'})[k] || k}：${v}/10`)
+        .join(' · '),
       scores: finalScores,
       analysis: result,
+      type: 'personality-test',
     });
   };
 

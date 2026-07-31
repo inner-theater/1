@@ -90,6 +90,23 @@ export const storage = {
     return diary;
   },
 
+  // 删除日记条目（同时清服务端 + 本地）
+  async removeDiaryEntry(id) {
+    if (id == null) return;
+    // 服务端：仅当 id 是数字（bigserial）时调 supabase
+    if (typeof id === 'number' || (/^\d+$/.test(String(id)))) {
+      try {
+        await supabase.from('decision_diary').delete().eq('id', Number(id));
+      } catch (e) {
+        console.warn('removeDiaryEntry supabase 失败:', e?.message);
+      }
+    }
+    // 本地兜底（id 是 base36 字符串）
+    const diary = (local.get('diary') || []).filter((e) => e.id !== id);
+    local.set('diary', diary);
+    return diary;
+  },
+
   // 决策博物馆（Supabase 公共可见）
   async getMuseum() {
     const { data } = await supabase
