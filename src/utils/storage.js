@@ -36,7 +36,16 @@ const remote = {
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(100);
-    return data || [];
+    if (!data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      game: d.game,
+      question: d.question,
+      result: d.result,
+      type: d.type,
+      timestamp: d.created_at,
+      ...(d.data || {}), // 展开 JSONB 里的 detail 字段
+    }));
   },
 
   async addDiaryEntry(userId, entry) {
@@ -48,6 +57,19 @@ const remote = {
         question: entry.question || '',
         result: entry.result || '',
         type: entry.type || '',
+        data: {
+          optionA: entry.optionA,
+          optionB: entry.optionB,
+          chosen: entry.chosen,
+          other: entry.other,
+          letters: entry.letters, // 平行时空来信 — 完整三封信
+          questions: entry.questions, // 朋友拷问室 — 完整 10 道题
+          answers: entry.answers, // 朋友拷问室 — 自己的答案
+          tarotCard: entry.tarotCard, // 朋友拷问室 — 塔罗牌
+          originalQuestion: entry.originalQuestion, // 朋友拷问室 — 朋友原问题
+          scores: entry.scores, // 人格测试 — 5 维度分数
+          analysis: entry.analysis, // 人格测试 — AI 分析
+        },
       })
       .select()
       .single();

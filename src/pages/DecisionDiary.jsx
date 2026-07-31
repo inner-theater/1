@@ -309,6 +309,55 @@ ${diarySummary}
                                   </div>
                                 )}
 
+                                {entry.type === 'parallel-letters' && Array.isArray(entry.letters) && entry.letters.length > 0 && (
+                                  <div style={{ marginBottom: '14px' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px', marginBottom: '8px' }}>三封信</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                      {entry.letters.map((l, i) => (
+                                        <div key={i} style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.15)' }}>
+                                          <div style={{ fontSize: '13px', color: '#c9a84c', marginBottom: '6px', letterSpacing: '1px' }}>{l.title || `第 ${i + 1} 封`}</div>
+                                          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', lineHeight: 1.8, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{l.content || ''}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {entry.type === 'friend-room' && Array.isArray(entry.questions) && entry.questions.length > 0 && (
+                                  <div style={{ marginBottom: '14px' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px', marginBottom: '8px' }}>
+                                      {entry.originalQuestion ? `我回答的 10 道题（朋友的拷问：「${entry.originalQuestion.slice(0, 30)}...」）` : '10 道灵魂拷问'}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {entry.questions.map((q, qi) => {
+                                        const chosenLabel = entry.answers?.[q.id ?? qi];
+                                        const chosenText = (q.options || []).find((o) => o.label === chosenLabel)?.text || chosenLabel;
+                                        return (
+                                          <div key={q.id ?? qi} style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(201,168,76,0.12)' }}>
+                                            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px' }}>
+                                              <span style={{ color: '#c9a84c' }}>{qi + 1}.</span> {q.q}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+                                              {chosenLabel ? (
+                                                <>我选了：<span style={{ color: '#e8d48b' }}>{chosenLabel}. {chosenText}</span></>
+                                              ) : (
+                                                <span style={{ color: 'rgba(255,255,255,0.35)' }}>未作答</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    {entry.tarotCard && (
+                                      <div style={{ marginTop: '10px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.25)' }}>
+                                        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', letterSpacing: '2px' }}>抽到的塔罗牌  </span>
+                                        <span style={{ fontSize: '14px', color: '#a855f7' }}>{entry.tarotCard.emoji} {entry.tarotCard.name}</span>
+                                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginLeft: '8px' }}>{entry.tarotCard.meaning}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
                                   <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
                                     🕐 {fullTime ? fullTime.toLocaleString('zh-CN', { hour12: false }) : ''}

@@ -35,6 +35,7 @@ export default function Game2_ParallelLetters() {
         optionB,
         chosen,
         other,
+        letters: letterList, // 完整三封信（title + content），日记展开时能看
         type: 'parallel-letters',
       });
     } catch (e) {

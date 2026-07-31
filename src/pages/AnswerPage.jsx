@@ -86,6 +86,9 @@ export default function AnswerPage() {
       game: '朋友灵魂拷问室',
       question: `帮朋友回答了：「${data.data.question.slice(0, 30)}...」`,
       result: `回答了${data.data.questions.length}道题`,
+      questions: data.data.questions, // 完整 10 道题（朋友的拷问），日记展开时能看
+      answers, // 我答的每一题选项
+      originalQuestion: data.data.question,
       type: 'friend-room',
     });
 

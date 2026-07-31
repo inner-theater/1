@@ -329,6 +329,10 @@ export default function Game3_FriendRoom() {
       game: '朋友灵魂拷问室',
       question: question,
       result: `得到塔罗牌「${card.name} ${card.emoji}」——${card.meaning}${fAnswers.length > 0 ? `（已有${fAnswers.length}位朋友回答）` : ''}`,
+      questions, // 完整 10 道题，日记展开时能看
+      answers, // 我自己的答案
+      tarotCard: card,
+      friendAnswers: fAnswers,
       type: 'friend-room',
     });
   };
