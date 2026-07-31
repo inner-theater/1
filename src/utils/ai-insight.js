@@ -36,6 +36,31 @@ export async function generateQuestions(question) {
   });
   const d = await r.json();
   if (!d.content) throw new Error(d.error || '生成题目失败');
-  const parsed = JSON.parse(d.content);
-  return Array.isArray(parsed) ? parsed : (() => { throw new Error('题目格式错误'); })();
+  const parsed = extractJSON(d.content);
+  if (!parsed || !Array.isArray(parsed)) {
+    throw new Error('题目格式错误');
+  }
+  return parsed;
+}
+
+// AI 返回的内容可能是以下任意形式：
+// 1. 纯 JSON 数组：        [{...}, {...}]
+// 2. markdown 包裹的 JSON：```json\n[...]\n```
+// 3. 前后带解释文字的 JSON：xxx\n[{...}]\nxxx
+// 下面的 extractJSON 依次尝试三种解析方式
+function extractJSON(text) {
+  if (!text || typeof text !== 'string') return null;
+  // 1. 直接 parse
+  try { return JSON.parse(text); } catch {}
+  // 2. markdown ```json ... ``` 块
+  const md = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (md) {
+    try { return JSON.parse(md[1]); } catch {}
+  }
+  // 3. 找第一个看起来像 JSON 数组 / 对象的子串（贪婪匹配到末尾）
+  const obj = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if (obj) {
+    try { return JSON.parse(obj[1]); } catch {}
+  }
+  return null;
 }
