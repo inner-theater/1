@@ -283,7 +283,9 @@ ${diarySummary}
               <motion.div key={month} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ width: '24px', height: '1px', background: '#c9a84c' }} />
-                  <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-display)', color: '#e8d48b', letterSpacing: '3px' }}>{month}</h3>
+                  <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-display)', color: '#e8d48b', letterSpacing: '3px' }}>
+                    {month.includes('NaN') ? '未知日期' : month}
+                  </h3>
                   <div style={{ flex: 1, height: '1px', background: 'rgba(201,168,76,0.1)' }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
