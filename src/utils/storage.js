@@ -37,18 +37,24 @@ const remote = {
       .order('created_at', { ascending: false })
       .limit(100);
     if (!data) return [];
-    return data.map((d) => ({
-      id: d.id,
-      game: d.game,
-      question: d.question,
-      result: d.result,
-      type: d.type,
-      timestamp: d.created_at,
-      ...(d.data || {}), // 展开 JSONB 里的 detail 字段
-    }));
+    return data.map((d) => {
+      const dataObj = d.data || {};
+      const { timestamp: dataTs, ...detail } = dataObj; // 拆出 data 里的 timestamp，剩下展开到顶层
+      return {
+        id: d.id,
+        game: d.game,
+        question: d.question,
+        result: d.result,
+        type: d.type,
+        // 优先 d.created_at（列默认 NOW），fallback d.data 里塞的 timestamp
+        timestamp: d.created_at || dataTs || null,
+        ...detail, // 展开 letters / questions / scores 等 detail 字段
+      };
+    });
   },
 
   async addDiaryEntry(userId, entry) {
+    const ts = new Date().toISOString();
     const { data } = await supabase
       .from('decision_diary')
       .insert({
@@ -58,6 +64,9 @@ const remote = {
         result: entry.result || '',
         type: entry.type || '',
         data: {
+          // 兜底 timestamp 也塞 data JSONB —— 万一 created_at 列缺失，
+          // 读取时还可以从 data.timestamp 拿到
+          timestamp: ts,
           optionA: entry.optionA,
           optionB: entry.optionB,
           chosen: entry.chosen,
