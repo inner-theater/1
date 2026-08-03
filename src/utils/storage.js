@@ -30,14 +30,20 @@ const remote = {
   },
 
   async getDiary(userId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('decision_diary')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(100);
+    if (error) {
+      console.warn('[storage] getDiary 查询失败:', error.message);
+      return [];
+    }
     if (!data) return [];
-    return data.map((d) => {
+    // 诊断：打印云端原始 row（前 2 条），看 created_at / data 结构
+    console.log('[storage] 云端原始日记:', JSON.stringify(data.slice(0, 2)));
+    const mapped = data.map((d) => {
       const dataObj = d.data || {};
       const { timestamp: dataTs, ...detail } = dataObj; // 拆出 data 里的 timestamp，剩下展开到顶层
       return {
@@ -51,6 +57,9 @@ const remote = {
         ...detail, // 展开 letters / questions / scores 等 detail 字段
       };
     });
+    // 诊断：打印映射后结果（前 2 条）
+    console.log('[storage] 映射后日记:', JSON.stringify(mapped.slice(0, 2)));
+    return mapped;
   },
 
   async addDiaryEntry(userId, entry) {
@@ -96,15 +105,8 @@ export const storage = {
   async getDiary() {
     const userId = await remote.getUser();
     if (userId) {
-      const diary = await remote.getDiary(userId);
-      return diary.map(d => ({
-        id: d.id,
-        game: d.game,
-        question: d.question,
-        result: d.result,
-        type: d.type,
-        timestamp: d.created_at,
-      }));
+      // remote.getDiary 已做过映射（含 timestamp 兜底），直接返回
+      return remote.getDiary(userId);
     }
     return local.get('diary') || [];
   },
