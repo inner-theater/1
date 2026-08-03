@@ -135,11 +135,19 @@ ${diarySummary}
     const groups = {};
     entries.forEach((entry) => {
       const date = new Date(entry.timestamp);
-      const key = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+      // 防御：如果 timestamp 缺失/非法（老数据），归到「未知日期」组，避免 'NaN年NaN月'
+      const key = isNaN(date.getTime())
+        ? '未知日期'
+        : `${date.getFullYear()}年${date.getMonth() + 1}月`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(entry);
     });
-    return groups;
+    // 未知日期组放最前面
+    const ordered = {};
+    if (groups['未知日期']) ordered['未知日期'] = groups['未知日期'];
+    delete groups['未知日期'];
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach((k) => { ordered[k] = groups[k]; });
+    return ordered;
   };
 
   const grouped = groupByMonth(diary);
